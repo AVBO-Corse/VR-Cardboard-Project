@@ -44,10 +44,8 @@
       <!-- ═══ ASSETS ══════════════════════════════════════════════════════════ -->
       <a-assets timeout="10000">
         <canvas id="floor-tex" width="256" height="256"></canvas>
-        <canvas id="logo-canvas" width="1024" height="794"></canvas>
-        <canvas id="stem-canvas" width="1024" height="387"></canvas>
-        <img id="logo-src"  src="logo.png"       crossorigin="anonymous" style="display:none">
-        <img id="stem-src"  src="stemracing.png" crossorigin="anonymous" style="display:none">
+        <img id="logo-img" src="logo.png"       crossorigin="anonymous">
+        <img id="stem-img" src="stemracing.png" crossorigin="anonymous">
         <!-- Solo asset locali nel preload — i GLB esterni si caricano inline -->
         <a-asset-item id="auto" src="macchina_test.glb"></a-asset-item>
       </a-assets>
@@ -137,33 +135,28 @@
 
       <!-- Logo AVBO CORSE — parete frontale, centrato, grande -->
       <!-- Cornice viola dietro -->
-      <a-box position="0 5.5 -13.85" width="5.4" height="3.1" depth="0.05" color="#330055" material="emissive:#220044; emissiveIntensity:0.3"></a-box>
-      <a-box position="0 5.5 -13.83" width="5.5" height="3.2" depth="0.03" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
+      <!-- Logo AVBO CORSE — parete frontale, centrato -->
       <a-plane id="logo-plane"
         position="0 5.5 -13.8"
         rotation="0 0 0"
-        width="5.2" height="3.0"
-        material="src: #logo-canvas; transparent: true; alphaTest: 0.05; side: double">
+        width="5.5" height="3.2"
+        material="src: #logo-img; shader: flat; transparent: true; alphaTest: 0.15; side: double">
       </a-plane>
 
       <!-- Logo STEM Racing — parete sinistra -->
-      <a-box position="-11.82 5.5 -3" rotation="0 90 0" width="5.2" height="2.2" depth="0.05" color="#330055" material="emissive:#220044; emissiveIntensity:0.3"></a-box>
-      <a-box position="-11.80 5.5 -3" rotation="0 90 0" width="5.4" height="2.4" depth="0.03" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
       <a-plane id="stem-left"
         position="-11.78 5.5 -3"
         rotation="0 90 0"
-        width="5.0" height="2.0"
-        material="src: #stem-canvas; transparent: true; alphaTest: 0.05; side: double">
+        width="5.5" height="2.2"
+        material="src: #stem-img; shader: flat; transparent: true; alphaTest: 0.15; side: double">
       </a-plane>
 
       <!-- Logo STEM Racing — parete destra -->
-      <a-box position="11.82 5.5 -3" rotation="0 -90 0" width="5.2" height="2.2" depth="0.05" color="#330055" material="emissive:#220044; emissiveIntensity:0.3"></a-box>
-      <a-box position="11.80 5.5 -3" rotation="0 -90 0" width="5.4" height="2.4" depth="0.03" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
       <a-plane id="stem-right"
         position="11.78 5.5 -3"
         rotation="0 -90 0"
-        width="5.0" height="2.0"
-        material="src: #stem-canvas; transparent: true; alphaTest: 0.05; side: double">
+        width="5.5" height="2.2"
+        material="src: #stem-img; shader: flat; transparent: true; alphaTest: 0.15; side: double">
       </a-plane>
 
       <!-- ═══ RACING PROPS ══════════════════════════════════════════════════════ -->
@@ -177,25 +170,22 @@
       <a-entity gltf-model="url(https://cdn.poly.pizza/m/cV6yx0v8Bfy/model.glb)"        position="-10 -0.10 -12"  rotation="0 30 0"  scale="1.2 1.2 1.2"></a-entity>
       <a-entity gltf-model="url(https://cdn.poly.pizza/m/cV6yx0v8Bfy/model.glb)"        position="-10  0.31 -12"  rotation="0 15 0"  scale="1.2 1.2 1.2"></a-entity>
 
-      <!-- Volante su piedistallo — zona destra davanti -->
-      <a-box position="8 0.6 -1" width="0.15" height="1.1" depth="0.15" color="#222222" material="metalness:0.8; roughness:0.2"></a-box>
-      <a-box position="8 1.2 -1" width="0.4"  height="0.05" depth="0.4" color="#333333" material="metalness:0.6; roughness:0.3"></a-box>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/bIYbhKwE4L0/model.glb)"    position="8 1.5 -1"        rotation="-20 0 0" scale="0.6 0.6 0.6"></a-entity>
+      <!-- Volante — zona destra davanti, direttamente sul pavimento -->
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/bIYbhKwE4L0/model.glb)" position="8 0.0 -1" rotation="-20 0 0" scale="0.8 0.8 0.8"></a-entity>
 
       <!-- Bandiera a scacchi — angolo destro anteriore -->
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/FuOkF3WBrx/model.glb)"        position="10 -0.51 -1"     rotation="0 -45 0" scale="1.5 1.5 1.5"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/FuOkF3WBrx/model.glb)" position="10 -0.51 -1" rotation="0 -45 0" scale="1.5 1.5 1.5"></a-entity>
 
       <!-- Estintore — vicino all'uscita (parete posteriore) -->
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/LtrzDvRya9/model.glb)" position="-11 -0.51 3.5"  rotation="0 90 0"  scale="1.2 1.2 1.2"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/LtrzDvRya9/model.glb)" position=" 11 -0.51 3.5"  rotation="0 -90 0" scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/LtrzDvRya9/model.glb)" position="-11 -0.51 3.5" rotation="0  90 0" scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/LtrzDvRya9/model.glb)" position=" 11 -0.51 3.5" rotation="0 -90 0" scale="1.2 1.2 1.2"></a-entity>
 
-      <!-- Velocimetro su piedistallo — zona sinistra -->
-      <a-box position="-7 0.6 -7" width="0.12" height="1.1" depth="0.12" color="#222222" material="metalness:0.8; roughness:0.2"></a-box>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/17WlSF6dD-r/model.glb)"      position="-7 1.5 -7"       rotation="0 45 0"  scale="0.7 0.7 0.7"></a-entity>
+      <!-- Velocimetro — zona sinistra, direttamente sul pavimento -->
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/17WlSF6dD-r/model.glb)" position="-7 0.0 -7" rotation="0 45 0" scale="1.0 1.0 1.0"></a-entity>
 
       <!-- Barriera racing — decorazione parete frontale laterale -->
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/SCaRjzjzSk/model.glb)"     position="-10 -0.51 -13"   rotation="0 90 0"  scale="1.0 1.0 1.0"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/SCaRjzjzSk/model.glb)"     position=" 10 -0.51 -13"   rotation="0 90 0"  scale="1.0 1.0 1.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/SCaRjzjzSk/model.glb)" position="-10 -0.51 -13" rotation="0 90 0" scale="1.0 1.0 1.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/SCaRjzjzSk/model.glb)" position=" 10 -0.51 -13" rotation="0 90 0" scale="1.0 1.0 1.0"></a-entity>
 
       <!-- ═══ PIATTAFORMA ROTANTE ══════════════════════════════════════════════ -->
       <a-entity position="0 -0.5 -6" rotate-y="speed: 0.25">
@@ -371,82 +361,6 @@
           for (let x = 0; x <= w; x += 64) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
           for (let y = 0; y <= h; y += 64) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
         })();
-
-        // ── Rimuovi sfondo nero da un'immagine e disegna su canvas ────────────
-        function removeBlackBg(imgEl, canvasEl, threshold) {
-          // Disegna su canvas temporaneo per leggere i pixel
-          const tmp = document.createElement('canvas');
-          tmp.width  = imgEl.naturalWidth  || imgEl.width  || 1024;
-          tmp.height = imgEl.naturalHeight || imgEl.height || 512;
-          const tctx = tmp.getContext('2d');
-          tctx.drawImage(imgEl, 0, 0, tmp.width, tmp.height);
-          const imgData = tctx.getImageData(0, 0, tmp.width, tmp.height);
-          const d = imgData.data;
-          for (let i = 0; i < d.length; i += 4) {
-            if (d[i] < threshold && d[i+1] < threshold && d[i+2] < threshold) d[i+3] = 0;
-          }
-          // Disegna sul canvas destinazione (stessa size)
-          canvasEl.width  = tmp.width;
-          canvasEl.height = tmp.height;
-          const dctx = canvasEl.getContext('2d');
-          dctx.putImageData(imgData, 0, 0);
-          // Forza aggiornamento texture A-Frame
-          const planes = document.querySelectorAll('[material]');
-          planes.forEach(p => {
-            const mat = p.getAttribute('material');
-            if (mat && (mat.src === '#logo-canvas' || mat.src === '#stem-canvas')) {
-              p.components.material && p.components.material.material &&
-                p.components.material.material.map &&
-                p.components.material.material.map.needsUpdate === false &&
-                (p.components.material.material.map.needsUpdate = true);
-            }
-          });
-        }
-
-        function initLogos() {
-          const logoImg = document.getElementById('logo-src');
-          const stemImg = document.getElementById('stem-src');
-          const logoCv  = document.getElementById('logo-canvas');
-          const stemCv  = document.getElementById('stem-canvas');
-
-          function tryLogo() {
-            if (logoImg.complete && logoImg.naturalWidth > 0) {
-              removeBlackBg(logoImg, logoCv, 35);
-            } else {
-              logoImg.onload = () => removeBlackBg(logoImg, logoCv, 35);
-            }
-          }
-          function tryStem() {
-            if (stemImg.complete && stemImg.naturalWidth > 0) {
-              removeBlackBg(stemImg, stemCv, 35);
-            } else {
-              stemImg.onload = () => removeBlackBg(stemImg, stemCv, 35);
-            }
-          }
-          tryLogo(); tryStem();
-
-          // Anche dopo sceneloaded, forza refresh texture
-          document.querySelector('a-scene').addEventListener('loaded', () => {
-            setTimeout(() => {
-              removeBlackBg(logoImg, logoCv, 35);
-              removeBlackBg(stemImg, stemCv, 35);
-              // Forza needsUpdate su tutti i materiali canvas
-              ['logo-plane','stem-left','stem-right'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.components.material) {
-                  const m = el.components.material.material;
-                  if (m && m.map) m.map.needsUpdate = true;
-                }
-              });
-            }, 500);
-          });
-        }
-
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', initLogos);
-        } else {
-          initLogos();
-        }
       </script>
 
       <script>
