@@ -44,12 +44,23 @@
       <!-- ═══ ASSETS ══════════════════════════════════════════════════════════ -->
       <a-assets timeout="30000">
         <canvas id="floor-tex" width="256" height="256"></canvas>
-        <img id="logo" src="logo.png" crossorigin="anonymous">
-        <a-asset-item id="auto"        src="macchina_test.glb"></a-asset-item>
+        <canvas id="logo-canvas" width="1024" height="794"></canvas>
+        <canvas id="stem-canvas" width="1024" height="387"></canvas>
+        <img id="logo-src"  src="logo.png"       crossorigin="anonymous" style="display:none">
+        <img id="stem-src"  src="stemracing.png" crossorigin="anonymous" style="display:none">
+        <a-asset-item id="auto"            src="macchina_test.glb"></a-asset-item>
         <a-asset-item id="spotlight-model" src="https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb"></a-asset-item>
+        <!-- Racing props — tutti CC0/CC-BY poly.pizza -->
+        <a-asset-item id="trophy"     src="https://cdn.poly.pizza/m/6Xu7mttjodo/model.glb"></a-asset-item>
+        <a-asset-item id="tire"       src="https://cdn.poly.pizza/m/cV6yx0v8Bfy/model.glb"></a-asset-item>
+        <a-asset-item id="steering"   src="https://cdn.poly.pizza/m/bIYbhKwE4L0/model.glb"></a-asset-item>
+        <a-asset-item id="flag"       src="https://cdn.poly.pizza/m/FuOkF3WBrx/model.glb"></a-asset-item>
+        <a-asset-item id="speedo"     src="https://cdn.poly.pizza/m/17WlSF6dD-r/model.glb"></a-asset-item>
+        <a-asset-item id="extinguisher" src="https://cdn.poly.pizza/m/LtrzDvRya9/model.glb"></a-asset-item>
+        <a-asset-item id="barrier"    src="https://cdn.poly.pizza/m/SCaRjzjzSk/model.glb"></a-asset-item>
+        <!-- Furniture -->
         <a-asset-item id="sofa"        src="https://cdn.poly.pizza/m/f47310a0-4d22-48a3-a2ce-62f67bcc998d/model.glb"></a-asset-item>
         <a-asset-item id="sofa-corner" src="https://cdn.poly.pizza/m/e78c10a3-58e6-400b-a576-c5db78c2d30f/model.glb"></a-asset-item>
-        <a-asset-item id="chair"       src="https://cdn.poly.pizza/m/36331876-a6da-4a91-9788-ac78650dd891/model.glb"></a-asset-item>
         <a-asset-item id="table"       src="https://cdn.poly.pizza/m/68c4bcbd-0c5d-42ee-ab91-4cce6672fa18/model.glb"></a-asset-item>
         <a-asset-item id="plant"       src="https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb"></a-asset-item>
         <a-asset-item id="plant-pot"   src="https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb"></a-asset-item>
@@ -141,13 +152,67 @@
       <a-box position="-11.92 0.5 -3" width="0.05" height="0.1" depth="22"   color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.3"></a-box>
       <a-box position=" 11.92 0.5 -3" width="0.05" height="0.1" depth="22"   color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.3"></a-box>
 
-      <!-- Logo AVBO CORSE su parete sinistra -->
-      <a-plane
-        position="-11.85 5.5 -3"
-        rotation="0 90 0"
-        width="4" height="3"
-        material="src: #logo; transparent: true; alphaTest: 0.1; side: double">
+      <!-- Logo AVBO CORSE — parete frontale, centrato, grande -->
+      <!-- Cornice viola dietro -->
+      <a-box position="0 5.5 -13.85" width="5.4" height="3.1" depth="0.05" color="#330055" material="emissive:#220044; emissiveIntensity:0.3"></a-box>
+      <a-box position="0 5.5 -13.83" width="5.5" height="3.2" depth="0.03" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
+      <a-plane id="logo-plane"
+        position="0 5.5 -13.8"
+        rotation="0 0 0"
+        width="5.2" height="3.0"
+        material="src: #logo-canvas; transparent: true; alphaTest: 0.05; side: double">
       </a-plane>
+
+      <!-- Logo STEM Racing — parete sinistra -->
+      <a-box position="-11.82 5.5 -3" rotation="0 90 0" width="5.2" height="2.2" depth="0.05" color="#330055" material="emissive:#220044; emissiveIntensity:0.3"></a-box>
+      <a-box position="-11.80 5.5 -3" rotation="0 90 0" width="5.4" height="2.4" depth="0.03" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
+      <a-plane id="stem-left"
+        position="-11.78 5.5 -3"
+        rotation="0 90 0"
+        width="5.0" height="2.0"
+        material="src: #stem-canvas; transparent: true; alphaTest: 0.05; side: double">
+      </a-plane>
+
+      <!-- Logo STEM Racing — parete destra -->
+      <a-box position="11.82 5.5 -3" rotation="0 -90 0" width="5.2" height="2.2" depth="0.05" color="#330055" material="emissive:#220044; emissiveIntensity:0.3"></a-box>
+      <a-box position="11.80 5.5 -3" rotation="0 -90 0" width="5.4" height="2.4" depth="0.03" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
+      <a-plane id="stem-right"
+        position="11.78 5.5 -3"
+        rotation="0 -90 0"
+        width="5.0" height="2.0"
+        material="src: #stem-canvas; transparent: true; alphaTest: 0.05; side: double">
+      </a-plane>
+
+      <!-- ═══ RACING PROPS ══════════════════════════════════════════════════════ -->
+      <!-- Trofeo — angolo destro vicino alla scrivania -->
+      <a-entity gltf-model="#trophy"      position="10.5 -0.51 -6"  rotation="0 -30 0" scale="0.8 0.8 0.8"></a-entity>
+      <!-- Secondo trofeo più piccolo -->
+      <a-entity gltf-model="#trophy"      position="10.8 -0.51 -5"  rotation="0  20 0" scale="0.5 0.5 0.5"></a-entity>
+
+      <!-- Pneumatici impilati — angolo sinistro posteriore -->
+      <a-entity gltf-model="#tire"        position="-10 -0.51 -12"  rotation="0 0 0"   scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="#tire"        position="-10 -0.10 -12"  rotation="0 30 0"  scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="#tire"        position="-10  0.31 -12"  rotation="0 15 0"  scale="1.2 1.2 1.2"></a-entity>
+
+      <!-- Volante su piedistallo — zona destra davanti -->
+      <a-box position="8 0.6 -1" width="0.15" height="1.1" depth="0.15" color="#222222" material="metalness:0.8; roughness:0.2"></a-box>
+      <a-box position="8 1.2 -1" width="0.4"  height="0.05" depth="0.4" color="#333333" material="metalness:0.6; roughness:0.3"></a-box>
+      <a-entity gltf-model="#steering"    position="8 1.5 -1"        rotation="-20 0 0" scale="0.6 0.6 0.6"></a-entity>
+
+      <!-- Bandiera a scacchi — angolo destro anteriore -->
+      <a-entity gltf-model="#flag"        position="10 -0.51 -1"     rotation="0 -45 0" scale="1.5 1.5 1.5"></a-entity>
+
+      <!-- Estintore — vicino all'uscita (parete posteriore) -->
+      <a-entity gltf-model="#extinguisher" position="-11 -0.51 3.5"  rotation="0 90 0"  scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="#extinguisher" position=" 11 -0.51 3.5"  rotation="0 -90 0" scale="1.2 1.2 1.2"></a-entity>
+
+      <!-- Velocimetro su piedistallo — zona sinistra -->
+      <a-box position="-7 0.6 -7" width="0.12" height="1.1" depth="0.12" color="#222222" material="metalness:0.8; roughness:0.2"></a-box>
+      <a-entity gltf-model="#speedo"      position="-7 1.5 -7"       rotation="0 45 0"  scale="0.7 0.7 0.7"></a-entity>
+
+      <!-- Barriera racing — decorazione parete frontale laterale -->
+      <a-entity gltf-model="#barrier"     position="-10 -0.51 -13"   rotation="0 90 0"  scale="1.0 1.0 1.0"></a-entity>
+      <a-entity gltf-model="#barrier"     position=" 10 -0.51 -13"   rotation="0 90 0"  scale="1.0 1.0 1.0"></a-entity>
 
       <!-- ═══ PIATTAFORMA ROTANTE ══════════════════════════════════════════════ -->
       <a-entity position="0 -0.5 -6" rotate-y="speed: 0.25">
@@ -288,59 +353,117 @@
         </a-entity>
       </a-entity>
 
-      <!-- Script texture pavimento via canvas -->
+      <!-- Script texture pavimento + loghi senza sfondo nero -->
       <script>
-        // Genera texture marmo grigio-beige con venature sottili
+        // ── Pavimento ────────────────────────────────────────────────────────
         (function() {
           const c = document.getElementById('floor-tex');
           const ctx = c.getContext('2d');
           const w = 256, h = 256;
-
-          // Base: beige-grigio caldo
           ctx.fillStyle = '#b8b0a4';
           ctx.fillRect(0, 0, w, h);
-
-          // Variazione di base con gradiente sottile
           const grad = ctx.createLinearGradient(0, 0, w, h);
           grad.addColorStop(0,   'rgba(180,172,162,0.6)');
           grad.addColorStop(0.5, 'rgba(160,152,144,0.4)');
           grad.addColorStop(1,   'rgba(175,167,157,0.6)');
           ctx.fillStyle = grad;
           ctx.fillRect(0, 0, w, h);
-
-          // Venature chiare (simula marmo / cemento levigato)
           ctx.strokeStyle = 'rgba(210,205,198,0.35)';
           ctx.lineWidth = 0.8;
           for (let i = 0; i < 18; i++) {
             ctx.beginPath();
-            const x0 = Math.random() * w;
-            const y0 = Math.random() * h;
+            const x0 = Math.random()*w, y0 = Math.random()*h;
             ctx.moveTo(x0, y0);
-            for (let j = 0; j < 6; j++) {
-              ctx.lineTo(x0 + (Math.random()-0.5)*80, y0 + (Math.random()-0.5)*80);
-            }
+            for (let j = 0; j < 6; j++) ctx.lineTo(x0+(Math.random()-.5)*80, y0+(Math.random()-.5)*80);
             ctx.stroke();
           }
-          // Venature scure sottili
-          ctx.strokeStyle = 'rgba(100,95,88,0.12)';
-          ctx.lineWidth = 0.5;
+          ctx.strokeStyle = 'rgba(100,95,88,0.12)'; ctx.lineWidth = 0.5;
           for (let i = 0; i < 10; i++) {
             ctx.beginPath();
             ctx.moveTo(Math.random()*w, Math.random()*h);
             ctx.lineTo(Math.random()*w, Math.random()*h);
             ctx.stroke();
           }
-
-          // Griglia fughe: linee scure sottili ogni 64px
-          ctx.strokeStyle = 'rgba(80,75,68,0.4)';
-          ctx.lineWidth = 1.2;
-          for (let x = 0; x <= w; x += 64) {
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-          }
-          for (let y = 0; y <= h; y += 64) {
-            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-          }
+          ctx.strokeStyle = 'rgba(80,75,68,0.4)'; ctx.lineWidth = 1.2;
+          for (let x = 0; x <= w; x += 64) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+          for (let y = 0; y <= h; y += 64) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
         })();
+
+        // ── Rimuovi sfondo nero da un'immagine e disegna su canvas ────────────
+        function removeBlackBg(imgEl, canvasEl, threshold) {
+          // Disegna su canvas temporaneo per leggere i pixel
+          const tmp = document.createElement('canvas');
+          tmp.width  = imgEl.naturalWidth  || imgEl.width  || 1024;
+          tmp.height = imgEl.naturalHeight || imgEl.height || 512;
+          const tctx = tmp.getContext('2d');
+          tctx.drawImage(imgEl, 0, 0, tmp.width, tmp.height);
+          const imgData = tctx.getImageData(0, 0, tmp.width, tmp.height);
+          const d = imgData.data;
+          for (let i = 0; i < d.length; i += 4) {
+            if (d[i] < threshold && d[i+1] < threshold && d[i+2] < threshold) d[i+3] = 0;
+          }
+          // Disegna sul canvas destinazione (stessa size)
+          canvasEl.width  = tmp.width;
+          canvasEl.height = tmp.height;
+          const dctx = canvasEl.getContext('2d');
+          dctx.putImageData(imgData, 0, 0);
+          // Forza aggiornamento texture A-Frame
+          const planes = document.querySelectorAll('[material]');
+          planes.forEach(p => {
+            const mat = p.getAttribute('material');
+            if (mat && (mat.src === '#logo-canvas' || mat.src === '#stem-canvas')) {
+              p.components.material && p.components.material.material &&
+                p.components.material.material.map &&
+                p.components.material.material.map.needsUpdate === false &&
+                (p.components.material.material.map.needsUpdate = true);
+            }
+          });
+        }
+
+        function initLogos() {
+          const logoImg = document.getElementById('logo-src');
+          const stemImg = document.getElementById('stem-src');
+          const logoCv  = document.getElementById('logo-canvas');
+          const stemCv  = document.getElementById('stem-canvas');
+
+          function tryLogo() {
+            if (logoImg.complete && logoImg.naturalWidth > 0) {
+              removeBlackBg(logoImg, logoCv, 35);
+            } else {
+              logoImg.onload = () => removeBlackBg(logoImg, logoCv, 35);
+            }
+          }
+          function tryStem() {
+            if (stemImg.complete && stemImg.naturalWidth > 0) {
+              removeBlackBg(stemImg, stemCv, 35);
+            } else {
+              stemImg.onload = () => removeBlackBg(stemImg, stemCv, 35);
+            }
+          }
+          tryLogo(); tryStem();
+
+          // Anche dopo sceneloaded, forza refresh texture
+          document.querySelector('a-scene').addEventListener('loaded', () => {
+            setTimeout(() => {
+              removeBlackBg(logoImg, logoCv, 35);
+              removeBlackBg(stemImg, stemCv, 35);
+              // Forza needsUpdate su tutti i materiali canvas
+              ['logo-plane','stem-left','stem-right'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.components.material) {
+                  const m = el.components.material.material;
+                  if (m && m.map) m.map.needsUpdate = true;
+                }
+              });
+            }, 500);
+          });
+        }
+
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initLogos);
+        } else {
+          initLogos();
+        }
       </script>
 
       <script>
