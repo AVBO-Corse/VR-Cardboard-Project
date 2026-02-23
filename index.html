@@ -42,31 +42,14 @@
     >
 
       <!-- ═══ ASSETS ══════════════════════════════════════════════════════════ -->
-      <a-assets timeout="30000">
+      <a-assets timeout="10000">
         <canvas id="floor-tex" width="256" height="256"></canvas>
         <canvas id="logo-canvas" width="1024" height="794"></canvas>
         <canvas id="stem-canvas" width="1024" height="387"></canvas>
         <img id="logo-src"  src="logo.png"       crossorigin="anonymous" style="display:none">
         <img id="stem-src"  src="stemracing.png" crossorigin="anonymous" style="display:none">
-        <a-asset-item id="auto"            src="macchina_test.glb"></a-asset-item>
-        <a-asset-item id="spotlight-model" src="https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb"></a-asset-item>
-        <!-- Racing props — tutti CC0/CC-BY poly.pizza -->
-        <a-asset-item id="trophy"     src="https://cdn.poly.pizza/m/6Xu7mttjodo/model.glb"></a-asset-item>
-        <a-asset-item id="tire"       src="https://cdn.poly.pizza/m/cV6yx0v8Bfy/model.glb"></a-asset-item>
-        <a-asset-item id="steering"   src="https://cdn.poly.pizza/m/bIYbhKwE4L0/model.glb"></a-asset-item>
-        <a-asset-item id="flag"       src="https://cdn.poly.pizza/m/FuOkF3WBrx/model.glb"></a-asset-item>
-        <a-asset-item id="speedo"     src="https://cdn.poly.pizza/m/17WlSF6dD-r/model.glb"></a-asset-item>
-        <a-asset-item id="extinguisher" src="https://cdn.poly.pizza/m/LtrzDvRya9/model.glb"></a-asset-item>
-        <a-asset-item id="barrier"    src="https://cdn.poly.pizza/m/SCaRjzjzSk/model.glb"></a-asset-item>
-        <!-- Furniture -->
-        <a-asset-item id="sofa"        src="https://cdn.poly.pizza/m/f47310a0-4d22-48a3-a2ce-62f67bcc998d/model.glb"></a-asset-item>
-        <a-asset-item id="sofa-corner" src="https://cdn.poly.pizza/m/e78c10a3-58e6-400b-a576-c5db78c2d30f/model.glb"></a-asset-item>
-        <a-asset-item id="table"       src="https://cdn.poly.pizza/m/68c4bcbd-0c5d-42ee-ab91-4cce6672fa18/model.glb"></a-asset-item>
-        <a-asset-item id="plant"       src="https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb"></a-asset-item>
-        <a-asset-item id="plant-pot"   src="https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb"></a-asset-item>
-        <a-asset-item id="lamp"        src="https://cdn.poly.pizza/m/98dd45a1-0682-4d44-83d1-32fa2a4fca5b/model.glb"></a-asset-item>
-        <a-asset-item id="desk"        src="https://cdn.poly.pizza/m/0716218b-3aae-48e6-8ddd-185cf7f7b7d7/model.glb"></a-asset-item>
-        <a-asset-item id="desk-chair"  src="https://cdn.poly.pizza/m/64699642-a4c2-4850-9c4b-558a328ed1bf/model.glb"></a-asset-item>
+        <!-- Solo asset locali nel preload — i GLB esterni si caricano inline -->
+        <a-asset-item id="auto" src="macchina_test.glb"></a-asset-item>
       </a-assets>
 
       <!-- ═══ LUCI ════════════════════════════════════════════════════════════
@@ -185,34 +168,34 @@
 
       <!-- ═══ RACING PROPS ══════════════════════════════════════════════════════ -->
       <!-- Trofeo — angolo destro vicino alla scrivania -->
-      <a-entity gltf-model="#trophy"      position="10.5 -0.51 -6"  rotation="0 -30 0" scale="0.8 0.8 0.8"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6Xu7mttjodo/model.glb)"      position="10.5 -0.51 -6"  rotation="0 -30 0" scale="0.8 0.8 0.8"></a-entity>
       <!-- Secondo trofeo più piccolo -->
-      <a-entity gltf-model="#trophy"      position="10.8 -0.51 -5"  rotation="0  20 0" scale="0.5 0.5 0.5"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6Xu7mttjodo/model.glb)"      position="10.8 -0.51 -5"  rotation="0  20 0" scale="0.5 0.5 0.5"></a-entity>
 
       <!-- Pneumatici impilati — angolo sinistro posteriore -->
-      <a-entity gltf-model="#tire"        position="-10 -0.51 -12"  rotation="0 0 0"   scale="1.2 1.2 1.2"></a-entity>
-      <a-entity gltf-model="#tire"        position="-10 -0.10 -12"  rotation="0 30 0"  scale="1.2 1.2 1.2"></a-entity>
-      <a-entity gltf-model="#tire"        position="-10  0.31 -12"  rotation="0 15 0"  scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/cV6yx0v8Bfy/model.glb)"        position="-10 -0.51 -12"  rotation="0 0 0"   scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/cV6yx0v8Bfy/model.glb)"        position="-10 -0.10 -12"  rotation="0 30 0"  scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/cV6yx0v8Bfy/model.glb)"        position="-10  0.31 -12"  rotation="0 15 0"  scale="1.2 1.2 1.2"></a-entity>
 
       <!-- Volante su piedistallo — zona destra davanti -->
       <a-box position="8 0.6 -1" width="0.15" height="1.1" depth="0.15" color="#222222" material="metalness:0.8; roughness:0.2"></a-box>
       <a-box position="8 1.2 -1" width="0.4"  height="0.05" depth="0.4" color="#333333" material="metalness:0.6; roughness:0.3"></a-box>
-      <a-entity gltf-model="#steering"    position="8 1.5 -1"        rotation="-20 0 0" scale="0.6 0.6 0.6"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/bIYbhKwE4L0/model.glb)"    position="8 1.5 -1"        rotation="-20 0 0" scale="0.6 0.6 0.6"></a-entity>
 
       <!-- Bandiera a scacchi — angolo destro anteriore -->
-      <a-entity gltf-model="#flag"        position="10 -0.51 -1"     rotation="0 -45 0" scale="1.5 1.5 1.5"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/FuOkF3WBrx/model.glb)"        position="10 -0.51 -1"     rotation="0 -45 0" scale="1.5 1.5 1.5"></a-entity>
 
       <!-- Estintore — vicino all'uscita (parete posteriore) -->
-      <a-entity gltf-model="#extinguisher" position="-11 -0.51 3.5"  rotation="0 90 0"  scale="1.2 1.2 1.2"></a-entity>
-      <a-entity gltf-model="#extinguisher" position=" 11 -0.51 3.5"  rotation="0 -90 0" scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/LtrzDvRya9/model.glb)" position="-11 -0.51 3.5"  rotation="0 90 0"  scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/LtrzDvRya9/model.glb)" position=" 11 -0.51 3.5"  rotation="0 -90 0" scale="1.2 1.2 1.2"></a-entity>
 
       <!-- Velocimetro su piedistallo — zona sinistra -->
       <a-box position="-7 0.6 -7" width="0.12" height="1.1" depth="0.12" color="#222222" material="metalness:0.8; roughness:0.2"></a-box>
-      <a-entity gltf-model="#speedo"      position="-7 1.5 -7"       rotation="0 45 0"  scale="0.7 0.7 0.7"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/17WlSF6dD-r/model.glb)"      position="-7 1.5 -7"       rotation="0 45 0"  scale="0.7 0.7 0.7"></a-entity>
 
       <!-- Barriera racing — decorazione parete frontale laterale -->
-      <a-entity gltf-model="#barrier"     position="-10 -0.51 -13"   rotation="0 90 0"  scale="1.0 1.0 1.0"></a-entity>
-      <a-entity gltf-model="#barrier"     position=" 10 -0.51 -13"   rotation="0 90 0"  scale="1.0 1.0 1.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/SCaRjzjzSk/model.glb)"     position="-10 -0.51 -13"   rotation="0 90 0"  scale="1.0 1.0 1.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/SCaRjzjzSk/model.glb)"     position=" 10 -0.51 -13"   rotation="0 90 0"  scale="1.0 1.0 1.0"></a-entity>
 
       <!-- ═══ PIATTAFORMA ROTANTE ══════════════════════════════════════════════ -->
       <a-entity position="0 -0.5 -6" rotate-y="speed: 0.25">
@@ -234,53 +217,53 @@
            Modello spotlight iPoly3D (CC0) — puntato verso la piattaforma
       ══════════════════════════════════════════════════════════════════════════ -->
       <!-- Spot centrale sulla macchina -->
-      <a-entity gltf-model="#spotlight-model"
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)"
         position="0 8.8 -6"
         rotation="0 0 180"
         scale="0.6 0.6 0.6">
       </a-entity>
       <!-- Spot laterale sinistro -->
-      <a-entity gltf-model="#spotlight-model"
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)"
         position="-3 8.8 -6"
         rotation="15 0 195"
         scale="0.5 0.5 0.5">
       </a-entity>
       <!-- Spot laterale destro -->
-      <a-entity gltf-model="#spotlight-model"
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)"
         position="3 8.8 -6"
         rotation="15 0 165"
         scale="0.5 0.5 0.5">
       </a-entity>
       <!-- Spot zona attesa -->
-      <a-entity gltf-model="#spotlight-model"
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)"
         position="-8 8.8 -2"
         rotation="30 40 180"
         scale="0.4 0.4 0.4">
       </a-entity>
-      <a-entity gltf-model="#spotlight-model"
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)"
         position="-8 8.8 -5"
         rotation="30 40 180"
         scale="0.4 0.4 0.4">
       </a-entity>
 
       <!-- ═══ ZONA ATTESA ════════════════════════════════════════════════════= -->
-      <a-entity gltf-model="#sofa-corner" position="-9 -0.51 -1"   rotation="0  90 0" scale="1.5 1.5 1.5"></a-entity>
-      <a-entity gltf-model="#sofa"        position="-9 -0.51 -4"   rotation="0  90 0" scale="1.5 1.5 1.5"></a-entity>
-      <a-entity gltf-model="#table"       position="-7 -0.51 -2"   rotation="0   0 0" scale="1.2 1.2 1.2"></a-entity>
-      <a-entity gltf-model="#lamp"        position="-10.5 -0.51 0.5" rotation="0 0 0" scale="1.3 1.3 1.3"></a-entity>
-      <a-entity gltf-model="#plant-pot"   position="-10.5 -0.51 -7" rotation="0 45 0" scale="1.5 1.5 1.5"></a-entity>
-      <a-entity gltf-model="#plant"       position="-10.5 -0.51  3"  rotation="0 20 0" scale="1.4 1.4 1.4"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/e78c10a3-58e6-400b-a576-c5db78c2d30f/model.glb)" position="-9 -0.51 -1"   rotation="0  90 0" scale="1.5 1.5 1.5"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/f47310a0-4d22-48a3-a2ce-62f67bcc998d/model.glb)"        position="-9 -0.51 -4"   rotation="0  90 0" scale="1.5 1.5 1.5"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/68c4bcbd-0c5d-42ee-ab91-4cce6672fa18/model.glb)"       position="-7 -0.51 -2"   rotation="0   0 0" scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/98dd45a1-0682-4d44-83d1-32fa2a4fca5b/model.glb)"        position="-10.5 -0.51 0.5" rotation="0 0 0" scale="1.3 1.3 1.3"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)"   position="-10.5 -0.51 -7" rotation="0 45 0" scale="1.5 1.5 1.5"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb)"       position="-10.5 -0.51  3"  rotation="0 20 0" scale="1.4 1.4 1.4"></a-entity>
 
       <!-- ═══ ZONA RECEPTION (scrivania senza bancone) ═══════════════════════ -->
-      <a-entity gltf-model="#desk"       position="9.5 -0.51 -3.5" rotation="0 180 0" scale="1.2 1.2 1.2"></a-entity>
-      <a-entity gltf-model="#desk-chair" position="9.5 -0.51 -3.0" rotation="0 180 0" scale="1.0 1.0 1.0"></a-entity>
-      <a-entity gltf-model="#plant-pot"  position="11.5 -0.51 -1"  rotation="0 0 0"   scale="1.3 1.3 1.3"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/0716218b-3aae-48e6-8ddd-185cf7f7b7d7/model.glb)"       position="9.5 -0.51 -3.5" rotation="0 180 0" scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/64699642-a4c2-4850-9c4b-558a328ed1bf/model.glb)" position="9.5 -0.51 -3.0" rotation="0 180 0" scale="1.0 1.0 1.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)"  position="11.5 -0.51 -1"  rotation="0 0 0"   scale="1.3 1.3 1.3"></a-entity>
 
       <!-- ═══ PIANTE ANGOLI ═══════════════════════════════════════════════════ -->
-      <a-entity gltf-model="#plant-pot" position="-11.5 -0.51 -13" rotation="0  30 0" scale="2.0 2.0 2.0"></a-entity>
-      <a-entity gltf-model="#plant-pot" position=" 11.5 -0.51 -13" rotation="0 -30 0" scale="2.0 2.0 2.0"></a-entity>
-      <a-entity gltf-model="#plant"     position="-11.5 -0.51   4" rotation="0   0 0" scale="1.8 1.8 1.8"></a-entity>
-      <a-entity gltf-model="#plant"     position=" 11.5 -0.51   4" rotation="0   0 0" scale="1.8 1.8 1.8"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position="-11.5 -0.51 -13" rotation="0  30 0" scale="2.0 2.0 2.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position=" 11.5 -0.51 -13" rotation="0 -30 0" scale="2.0 2.0 2.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb)"     position="-11.5 -0.51   4" rotation="0   0 0" scale="1.8 1.8 1.8"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb)"     position=" 11.5 -0.51   4" rotation="0   0 0" scale="1.8 1.8 1.8"></a-entity>
 
       <!-- ═══ CAMERA ══════════════════════════════════════════════════════════ -->
       <a-entity camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
