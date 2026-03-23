@@ -181,6 +181,8 @@
         title.setAttribute('align', 'center'); title.setAttribute('color', '#ffffff');
         title.setAttribute('width', '1.7'); title.setAttribute('position', '0 0.24 0.01');
         title.setAttribute('wrap-count', '24');
+        title.setAttribute('font', 'exo2bold');
+        title.setAttribute('letter-spacing', '2');
         this.panel.appendChild(title);
 
         const sep = document.createElement('a-box');
@@ -194,6 +196,7 @@
         body.setAttribute('align', 'center'); body.setAttribute('color', '#ccaaff');
         body.setAttribute('width', '1.6'); body.setAttribute('position', '0 -0.16 0.01');
         body.setAttribute('wrap-count', '34');
+        body.setAttribute('font', 'exo2semibold');
         this.panel.appendChild(body);
 
         this.el.appendChild(this.panel);
@@ -516,7 +519,7 @@
 
       <!-- Logo AVBO CORSE — parete frontale -->
       <a-plane position="0 5.2 -13.8" rotation="0 0 0" width="16" height="9.3"
-        material="src:#logo-img; shader:flat; transparent:true; alphaTest:0.15; side:double">
+        material="src:#logo-img; shader:flat; transparent:true; alphaTest:0.05; color:#000000; side:double">
       </a-plane>
 
       <!-- zona attesa e reception rimosse temporaneamente -->
@@ -593,7 +596,7 @@
 
       <!-- P1 — sinistra-front -->
       <a-entity position="-2.5 1.6 -1.5" rotation="0 60 0">
-        <a-text value="TITOLO 1" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18"></a-text>
+        <a-text value="TITOLO 1" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
         <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
         <a-plane id="t1" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
         <a-entity id="b1" gaze-body>
@@ -602,13 +605,13 @@
           <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
           <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
           <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30"></a-text>
+          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
         </a-entity>
       </a-entity>
 
       <!-- P2 — destra-front -->
       <a-entity position="2.5 1.6 -1.5" rotation="0 -60 0">
-        <a-text value="TITOLO 2" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18"></a-text>
+        <a-text value="TITOLO 2" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
         <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
         <a-plane id="t2" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
         <a-entity id="b2" gaze-body>
@@ -617,13 +620,13 @@
           <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
           <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
           <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30"></a-text>
+          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
         </a-entity>
       </a-entity>
 
       <!-- P3 — sinistra-back -->
       <a-entity position="-2.0 1.6 1.5" rotation="0 120 0">
-        <a-text value="TITOLO 3" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18"></a-text>
+        <a-text value="TITOLO 3" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
         <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
         <a-plane id="t3" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
         <a-entity id="b3" gaze-body>
@@ -632,13 +635,13 @@
           <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
           <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
           <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30"></a-text>
+          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
         </a-entity>
       </a-entity>
 
       <!-- P4 — destra-back -->
       <a-entity position="2.0 1.6 1.5" rotation="0 -120 0">
-        <a-text value="TITOLO 4" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18"></a-text>
+        <a-text value="TITOLO 4" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
         <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
         <a-plane id="t4" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
         <a-entity id="b4" gaze-body>
@@ -647,7 +650,7 @@
           <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
           <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
           <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30"></a-text>
+          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
         </a-entity>
       </a-entity>
 
