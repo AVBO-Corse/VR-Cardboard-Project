@@ -328,61 +328,191 @@
       <a-light type="spot"    position="0 7 -6" rotation="-90 0 0" color="#ffffff" intensity="3.0" angle="30" penumbra="0.4"></a-light>
       <a-light type="point"   position="0 -0.3 -6" color="#9933ff" intensity="0.9" distance="4"></a-light>
 
-      <!-- ═══ SHOWROOM ═════════════════════════════════════════════════════════ -->
+      <!-- ═══ LUXURY SHOWROOM ARCHITECTURE ════════════════════════════════════
 
-      <!-- Pavimento -->
+           PARETI: zoccolo basso scuro + pannelli medi + pilastri metallici
+           SOFFITTO: cassettoni incassati con LED perimetrali
+           VETRATA: curtain wall acciaio spazzolato + vetro tintato
+
+      ══════════════════════════════════════════════════════════════════════════ -->
+
+      <!-- ── PAVIMENTO ─────────────────────────────────────────────────────── -->
       <a-plane position="0 -0.51 -3" rotation="-90 0 0" width="28" height="22"
-        material="src:#floor-tex; repeat:14 11; metalness:0.25; roughness:0.35"></a-plane>
+        material="src:#floor-tex; repeat:14 11; metalness:0.35; roughness:0.25"></a-plane>
+      <!-- Striscia perimetrale pavimento in acciaio scuro -->
+      <a-box position=" 0 -0.505  4.7"  width="28"  height="0.003" depth="0.6"  color="#1a1a1a" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position=" 0 -0.505 -13.7" width="28"  height="0.003" depth="0.6"  color="#1a1a1a" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position="-11.7 -0.505 -3" width="0.6" height="0.003" depth="22"   color="#1a1a1a" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position=" 11.7 -0.505 -3" width="0.6" height="0.003" depth="22"   color="#1a1a1a" material="metalness:0.9;roughness:0.1"></a-box>
 
-      <!-- Pareti antracite -->
-      <a-plane position=" 0 4 -14" rotation="0 0 0"    width="28" height="10" color="#2e2e2e" material="roughness:0.85"></a-plane>
-      <a-plane position="-12 4 -3" rotation="0  90 0"  width="22" height="10" color="#2e2e2e" material="roughness:0.85"></a-plane>
-      <a-plane position=" 12 4 -3" rotation="0 -90 0"  width="22" height="10" color="#2c2c2c" material="roughness:0.85"></a-plane>
-      <a-plane position=" 0 4  5"  rotation="0 180 0"  width="28" height="10" color="#2e2e2e" material="roughness:0.85"></a-plane>
+      <!-- ── PARETI — struttura a 3 fasce ──────────────────────────────────
+           Fascia A: zoccolo  Y 0→1.2  colore #1c1c1c molto scuro
+           Fascia B: pannelli Y 1.2→7  colore #272727 antracite medio
+           Fascia C: cornice  Y 7→9    colore #1e1e1e scuro
+      ──────────────────────────────────────────────────────────────────────── -->
 
-      <!-- Soffitto metallico -->
-      <a-plane position="0 9 -3" rotation="90 0 0" width="28" height="22"
-        color="#3a3a3a" material="metalness:0.85; roughness:0.25"></a-plane>
+      <!-- PARETE POSTERIORE (Z=5, verso camera) -->
+      <a-plane position="0 0.6  4.92" rotation="0 180 0" width="28" height="1.2"  color="#1c1c1c" material="roughness:0.9"></a-plane>
+      <a-plane position="0 4.1  4.92" rotation="0 180 0" width="28" height="5.8"  color="#272727" material="roughness:0.8"></a-plane>
+      <a-plane position="0 8.0  4.92" rotation="0 180 0" width="28" height="2.0"  color="#1e1e1e" material="roughness:0.85"></a-plane>
 
-      <!-- Vetrata frontale -->
-      <a-box position="-6  4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
-      <a-box position=" 0  4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
-      <a-box position=" 6  4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
-      <a-box position="-12 4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
-      <a-box position=" 12 4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
-      <a-box position="0 2 -13.95" width="28" height="0.1" depth="0.1" color="#555555"></a-box>
-      <a-box position="0 6 -13.95" width="28" height="0.1" depth="0.1" color="#555555"></a-box>
-      <a-plane position="-9 4 -13.9" width="5.7" height="7.8" material="color:#b8d4e8; opacity:0.22; transparent:true; side:double"></a-plane>
-      <a-plane position="-3 4 -13.9" width="5.7" height="7.8" material="color:#b8d4e8; opacity:0.22; transparent:true; side:double"></a-plane>
-      <a-plane position=" 3 4 -13.9" width="5.7" height="7.8" material="color:#b8d4e8; opacity:0.22; transparent:true; side:double"></a-plane>
-      <a-plane position=" 9 4 -13.9" width="5.7" height="7.8" material="color:#b8d4e8; opacity:0.22; transparent:true; side:double"></a-plane>
+      <!-- PARETE SINISTRA (X=-12) -->
+      <a-plane position="-11.92 0.6  -3" rotation="0  90 0" width="22" height="1.2" color="#1c1c1c" material="roughness:0.9"></a-plane>
+      <a-plane position="-11.92 4.1  -3" rotation="0  90 0" width="22" height="5.8" color="#272727" material="roughness:0.8"></a-plane>
+      <a-plane position="-11.92 8.0  -3" rotation="0  90 0" width="22" height="2.0" color="#1e1e1e" material="roughness:0.85"></a-plane>
 
-      <!-- Travi + LED strip soffitto -->
-      <a-box position="-8 8.8 -3" width="0.3" height="0.4" depth="22" color="#2a2a2a"></a-box>
-      <a-box position=" 8 8.8 -3" width="0.3" height="0.4" depth="22" color="#2a2a2a"></a-box>
-      <a-box position=" 0 8.8 -6" width="0.2" height="0.3" depth="6"  color="#2a2a2a"></a-box>
-      <a-box position="-3 8.95 -3" width="0.08" height="0.05" depth="18" color="#fffaf0" material="emissive:#fffaf0; emissiveIntensity:0.9"></a-box>
-      <a-box position=" 3 8.95 -3" width="0.08" height="0.05" depth="18" color="#fffaf0" material="emissive:#fffaf0; emissiveIntensity:0.9"></a-box>
+      <!-- PARETE DESTRA (X=12) -->
+      <a-plane position=" 11.92 0.6  -3" rotation="0 -90 0" width="22" height="1.2" color="#1c1c1c" material="roughness:0.9"></a-plane>
+      <a-plane position=" 11.92 4.1  -3" rotation="0 -90 0" width="22" height="5.8" color="#272727" material="roughness:0.8"></a-plane>
+      <a-plane position=" 11.92 8.0  -3" rotation="0 -90 0" width="22" height="2.0" color="#1e1e1e" material="roughness:0.85"></a-plane>
 
-      <!-- Faretti soffitto (geometry pura, no GLB) -->
-      <a-entity position=" 0 8.8 -6">
-        <a-cylinder height="0.30" radius="0.12" color="#222" material="metalness:0.9;roughness:0.1"></a-cylinder>
-        <a-cone height="0.20" radius-bottom="0.18" radius-top="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:0.8;shader:flat;side:double" position="0 -0.22 0"></a-cone>
-      </a-entity>
-      <a-entity position="-3 8.8 -6">
-        <a-cylinder height="0.28" radius="0.10" color="#222" material="metalness:0.9;roughness:0.1"></a-cylinder>
-        <a-cone height="0.18" radius-bottom="0.15" radius-top="0.07" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:0.7;shader:flat;side:double" position="0 -0.20 0"></a-cone>
-      </a-entity>
-      <a-entity position=" 3 8.8 -6">
-        <a-cylinder height="0.28" radius="0.10" color="#222" material="metalness:0.9;roughness:0.1"></a-cylinder>
-        <a-cone height="0.18" radius-bottom="0.15" radius-top="0.07" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:0.7;shader:flat;side:double" position="0 -0.20 0"></a-cone>
-      </a-entity>
+      <!-- PARETE FRONTALE sopra vetrata (Z=-14) -->
+      <a-plane position="0 8.5 -13.92" rotation="0 0 0" width="28" height="1.0" color="#1e1e1e" material="roughness:0.85"></a-plane>
 
-      <!-- Fascia viola brand -->
-      <a-box position=" 0 0.5 -13.92" width="28"   height="0.1" depth="0.05" color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.4"></a-box>
-      <a-box position=" 0 0.5   4.92" width="28"   height="0.1" depth="0.05" color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.3"></a-box>
-      <a-box position="-11.92 0.5 -3" width="0.05" height="0.1" depth="22"   color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.3"></a-box>
-      <a-box position=" 11.92 0.5 -3" width="0.05" height="0.1" depth="22"   color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.3"></a-box>
+      <!-- Battiscopa metallico (tutte le pareti) -->
+      <a-box position=" 0 -0.1  4.89" width="28.1" height="0.18" depth="0.06" color="#888888" material="metalness:0.85;roughness:0.15"></a-box>
+      <a-box position=" 0 -0.1 -13.89" width="28.1" height="0.18" depth="0.06" color="#888888" material="metalness:0.85;roughness:0.15"></a-box>
+      <a-box position="-11.89 -0.1 -3" width="0.06" height="0.18" depth="22.1" color="#888888" material="metalness:0.85;roughness:0.15"></a-box>
+      <a-box position=" 11.89 -0.1 -3" width="0.06" height="0.18" depth="22.1" color="#888888" material="metalness:0.85;roughness:0.15"></a-box>
+
+      <!-- Fascia orizzontale a quota 1.2m (separazione zoccolo/pannello) -->
+      <a-box position=" 0 1.2  4.88" width="28.1" height="0.06" depth="0.05" color="#aaaaaa" material="metalness:0.8;roughness:0.2"></a-box>
+      <a-box position=" 0 1.2 -13.88" width="28.1" height="0.06" depth="0.05" color="#aaaaaa" material="metalness:0.8;roughness:0.2"></a-box>
+      <a-box position="-11.88 1.2 -3" width="0.05" height="0.06" depth="22.1" color="#aaaaaa" material="metalness:0.8;roughness:0.2"></a-box>
+      <a-box position=" 11.88 1.2 -3" width="0.05" height="0.06" depth="22.1" color="#aaaaaa" material="metalness:0.8;roughness:0.2"></a-box>
+
+      <!-- Fascia orizzontale a quota 7m (cornice alta) -->
+      <a-box position=" 0 7.0  4.88" width="28.1" height="0.08" depth="0.06" color="#777777" material="metalness:0.75;roughness:0.2"></a-box>
+      <a-box position=" 0 7.0 -13.88" width="28.1" height="0.08" depth="0.06" color="#777777" material="metalness:0.75;roughness:0.2"></a-box>
+      <a-box position="-11.87 7.0 -3" width="0.06" height="0.08" depth="22.1" color="#777777" material="metalness:0.75;roughness:0.2"></a-box>
+      <a-box position=" 11.87 7.0 -3" width="0.06" height="0.08" depth="22.1" color="#777777" material="metalness:0.75;roughness:0.2"></a-box>
+
+      <!-- Pilastri verticali — parete sinistra ogni ~5.5m -->
+      <a-box position="-11.87 4.5 -8.5"  width="0.05" height="9" depth="0.25" color="#666666" material="metalness:0.85;roughness:0.15"></a-box>
+      <a-box position="-11.87 4.5 -3"    width="0.05" height="9" depth="0.25" color="#666666" material="metalness:0.85;roughness:0.15"></a-box>
+      <a-box position="-11.87 4.5  2.5"  width="0.05" height="9" depth="0.25" color="#666666" material="metalness:0.85;roughness:0.15"></a-box>
+
+      <!-- Pilastri verticali — parete destra -->
+      <a-box position=" 11.87 4.5 -8.5"  width="0.05" height="9" depth="0.25" color="#666666" material="metalness:0.85;roughness:0.15"></a-box>
+      <a-box position=" 11.87 4.5 -3"    width="0.05" height="9" depth="0.25" color="#666666" material="metalness:0.85;roughness:0.15"></a-box>
+      <a-box position=" 11.87 4.5  2.5"  width="0.05" height="9" depth="0.25" color="#666666" material="metalness:0.85;roughness:0.15"></a-box>
+
+      <!-- Pilastri verticali — parete posteriore -->
+      <a-box position="-6  4.5  4.87" width="0.25" height="9" depth="0.05" color="#666666" material="metalness:0.85;roughness:0.15"></a-box>
+      <a-box position=" 6  4.5  4.87" width="0.25" height="9" depth="0.05" color="#666666" material="metalness:0.85;roughness:0.15"></a-box>
+
+      <!-- Pannelli decorativi incassati sulle pareti laterali (riquadri più chiari) -->
+      <!-- Sinistra: 3 riquadri -->
+      <a-plane position="-11.85 4.1 -8.5" rotation="0  90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
+      <a-plane position="-11.85 4.1 -3"   rotation="0  90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
+      <a-plane position="-11.85 4.1  2.5" rotation="0  90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
+      <!-- Destra: 3 riquadri -->
+      <a-plane position=" 11.85 4.1 -8.5" rotation="0 -90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
+      <a-plane position=" 11.85 4.1 -3"   rotation="0 -90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
+      <a-plane position=" 11.85 4.1  2.5" rotation="0 -90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
+
+      <!-- ── SOFFITTO A CASSETTONI ──────────────────────────────────────────
+           Piano soffitto base + nervature che creano cassettoni
+           + LED strips incassate nei cassettoni
+      ──────────────────────────────────────────────────────────────────────── -->
+      <!-- Piano base soffitto -->
+      <a-plane position="0 9.0 -3" rotation="90 0 0" width="28" height="22"
+        color="#222222" material="metalness:0.6; roughness:0.3"></a-plane>
+
+      <!-- Nervature longitudinali (lungo Z) — ogni 4m su X -->
+      <a-box position="-8  8.95 -3" width="0.18" height="0.12" depth="22" color="#1a1a1a" material="metalness:0.7;roughness:0.2"></a-box>
+      <a-box position="-4  8.95 -3" width="0.18" height="0.12" depth="22" color="#1a1a1a" material="metalness:0.7;roughness:0.2"></a-box>
+      <a-box position=" 0  8.95 -3" width="0.18" height="0.12" depth="22" color="#1a1a1a" material="metalness:0.7;roughness:0.2"></a-box>
+      <a-box position=" 4  8.95 -3" width="0.18" height="0.12" depth="22" color="#1a1a1a" material="metalness:0.7;roughness:0.2"></a-box>
+      <a-box position=" 8  8.95 -3" width="0.18" height="0.12" depth="22" color="#1a1a1a" material="metalness:0.7;roughness:0.2"></a-box>
+
+      <!-- Nervature trasversali (lungo X) — ogni 4m su Z -->
+      <a-box position="0 8.95 -11" width="28" height="0.12" depth="0.18" color="#1a1a1a" material="metalness:0.7;roughness:0.2"></a-box>
+      <a-box position="0 8.95  -7" width="28" height="0.12" depth="0.18" color="#1a1a1a" material="metalness:0.7;roughness:0.2"></a-box>
+      <a-box position="0 8.95  -3" width="28" height="0.12" depth="0.18" color="#1a1a1a" material="metalness:0.7;roughness:0.2"></a-box>
+      <a-box position="0 8.95   1" width="28" height="0.12" depth="0.18" color="#1a1a1a" material="metalness:0.7;roughness:0.2"></a-box>
+
+      <!-- Pannelli cassettone leggermente più chiari (tra le nervature) -->
+      <a-plane position="-6 8.97 -9"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position="-2 8.97 -9"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position=" 2 8.97 -9"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position=" 6 8.97 -9"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position="-6 8.97 -5"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position="-2 8.97 -5"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position=" 2 8.97 -5"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position=" 6 8.97 -5"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position="-6 8.97 -1"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position="-2 8.97 -1"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position=" 2 8.97 -1"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+      <a-plane position=" 6 8.97 -1"  rotation="90 0 0" width="3.8" height="3.8" color="#2a2a2a" material="metalness:0.5;roughness:0.4"></a-plane>
+
+      <!-- LED strip incassate nei cassettoni (bordo dei riquadri) -->
+      <!-- Fila centrale Z=-5 -->
+      <a-box position="-6 8.93 -3.1" width="3.8" height="0.03" depth="0.04" color="#fff8e7" material="emissive:#fff8e7;emissiveIntensity:1.2;shader:flat"></a-box>
+      <a-box position="-2 8.93 -3.1" width="3.8" height="0.03" depth="0.04" color="#fff8e7" material="emissive:#fff8e7;emissiveIntensity:1.2;shader:flat"></a-box>
+      <a-box position=" 2 8.93 -3.1" width="3.8" height="0.03" depth="0.04" color="#fff8e7" material="emissive:#fff8e7;emissiveIntensity:1.2;shader:flat"></a-box>
+      <a-box position=" 6 8.93 -3.1" width="3.8" height="0.03" depth="0.04" color="#fff8e7" material="emissive:#fff8e7;emissiveIntensity:1.2;shader:flat"></a-box>
+      <!-- Fila Z=-7 -->
+      <a-box position="-6 8.93 -7.1" width="3.8" height="0.03" depth="0.04" color="#fff8e7" material="emissive:#fff8e7;emissiveIntensity:1.0;shader:flat"></a-box>
+      <a-box position="-2 8.93 -7.1" width="3.8" height="0.03" depth="0.04" color="#fff8e7" material="emissive:#fff8e7;emissiveIntensity:1.0;shader:flat"></a-box>
+      <a-box position=" 2 8.93 -7.1" width="3.8" height="0.03" depth="0.04" color="#fff8e7" material="emissive:#fff8e7;emissiveIntensity:1.0;shader:flat"></a-box>
+      <a-box position=" 6 8.93 -7.1" width="3.8" height="0.03" depth="0.04" color="#fff8e7" material="emissive:#fff8e7;emissiveIntensity:1.0;shader:flat"></a-box>
+
+      <!-- Faretti a incasso (punti luce nei cassettoni) -->
+      <a-cylinder position="-6 8.92 -5"  height="0.05" radius="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:1.5;shader:flat" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position="-2 8.92 -5"  height="0.05" radius="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:1.5;shader:flat" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position=" 2 8.92 -5"  height="0.05" radius="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:1.5;shader:flat" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position=" 6 8.92 -5"  height="0.05" radius="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:1.5;shader:flat" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position="-6 8.92 -9"  height="0.05" radius="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:1.5;shader:flat" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position=" 6 8.92 -9"  height="0.05" radius="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:1.5;shader:flat" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position="-6 8.92 -1"  height="0.05" radius="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:1.5;shader:flat" rotation="90 0 0"></a-cylinder>
+      <a-cylinder position=" 6 8.92 -1"  height="0.05" radius="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:1.5;shader:flat" rotation="90 0 0"></a-cylinder>
+
+      <!-- ── VETRATA CURTAIN WALL ─────────────────────────────────────────────
+           Montanti verticali acciaio spazzolato ogni 2m
+           Traversi orizzontali a 2m e 5m e 8m
+           Vetro grigio-blu tintato
+      ──────────────────────────────────────────────────────────────────────── -->
+      <!-- Montanti verticali (acciaio spazzolato) -->
+      <a-box position="-12 4.5 -13.95" width="0.12" height="9" depth="0.12" color="#888888" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position=" -8 4.5 -13.95" width="0.12" height="9" depth="0.12" color="#888888" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position=" -4 4.5 -13.95" width="0.12" height="9" depth="0.12" color="#888888" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position="  0 4.5 -13.95" width="0.12" height="9" depth="0.12" color="#888888" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position="  4 4.5 -13.95" width="0.12" height="9" depth="0.12" color="#888888" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position="  8 4.5 -13.95" width="0.12" height="9" depth="0.12" color="#888888" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position=" 12 4.5 -13.95" width="0.12" height="9" depth="0.12" color="#888888" material="metalness:0.9;roughness:0.1"></a-box>
+
+      <!-- Traversi orizzontali -->
+      <a-box position="0 0.05 -13.95" width="28" height="0.12" depth="0.12" color="#777777" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position="0 2.5  -13.95" width="28" height="0.10" depth="0.10" color="#777777" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position="0 5.0  -13.95" width="28" height="0.10" depth="0.10" color="#777777" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position="0 7.5  -13.95" width="28" height="0.10" depth="0.10" color="#777777" material="metalness:0.9;roughness:0.1"></a-box>
+      <a-box position="0 9.0  -13.95" width="28" height="0.14" depth="0.14" color="#777777" material="metalness:0.9;roughness:0.1"></a-box>
+
+      <!-- Pannelli vetro tintato (grigio-blu, semitrasparente) -->
+      <a-plane position="-10 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
+      <a-plane position=" -6 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
+      <a-plane position=" -2 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
+      <a-plane position="  2 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
+      <a-plane position="  6 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
+      <a-plane position=" 10 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
+
+      <!-- Riflesso/highlight vetro (striscia chiara in alto su ogni pannello) -->
+      <a-plane position="-10 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
+      <a-plane position=" -6 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
+      <a-plane position=" -2 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
+      <a-plane position="  2 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
+      <a-plane position="  6 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
+      <a-plane position=" 10 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
+
+      <!-- Soglia/pavimento rialzato vetrata -->
+      <a-box position="0 -0.4 -13.9" width="28" height="0.22" depth="0.3" color="#333333" material="metalness:0.7;roughness:0.2"></a-box>
+
+      <!-- Fascia viola brand (mantenuta, più sottile) -->
+      <a-box position=" 0 0.9  4.88" width="28.1" height="0.06" depth="0.04" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
+      <a-box position=" 0 0.9 -13.88" width="28.1" height="0.06" depth="0.04" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
+      <a-box position="-11.88 0.9 -3" width="0.04" height="0.06" depth="22.1" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
+      <a-box position=" 11.88 0.9 -3" width="0.04" height="0.06" depth="22.1" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
 
       <!-- Logo AVBO CORSE — parete frontale -->
       <a-plane position="0 5.2 -13.8" rotation="0 0 0" width="16" height="9.3"
