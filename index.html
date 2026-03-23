@@ -17,7 +17,7 @@
       pauseSnap: function () {
         this._paused   = true;
         this._snapping = true;
-        this._snapTgt  = 0; // angolo dove la macchina mostra il lato alla camera
+        this._snapTgt  = THREE.MathUtils.degToRad(35); // 3/4 view inclinato
       },
       resume: function () {
         this._paused   = false;
@@ -128,18 +128,18 @@
         this.dot.setAttribute('material', 'color:#ffffff; emissive:#ffffff; emissiveIntensity:1; shader:flat');
         this.el.appendChild(this.dot);
 
-        // Trigger gaze (sfera invisibile)
+        // Trigger gaze (sfera invisibile — radius grande per facilità di puntamento)
         this.trigger = document.createElement('a-sphere');
-        this.trigger.setAttribute('radius', '0.22');
+        this.trigger.setAttribute('radius', '0.35');
         this.trigger.setAttribute('class', 'hotspot-trigger');
         this.trigger.setAttribute('material', 'opacity:0; transparent:true; shader:flat');
         this.el.appendChild(this.trigger);
 
-        // Pannello info (figlio del hotspot, guarda sempre la camera)
+        // Pannello info
         this.panel = document.createElement('a-entity');
-        this.panel.setAttribute('position', '0 0.75 0');
+        this.panel.setAttribute('position', '0 0.8 0');
         this.panel.object3D.scale.set(0, 0, 0);
-        this.panel.setAttribute('look-at', '[camera]');
+        this.panel.setAttribute('look-at', '#cam');
 
         const bg = document.createElement('a-plane');
         bg.setAttribute('width', '1.9'); bg.setAttribute('height', '0.9');
@@ -412,30 +412,39 @@
           scale="0.02222 0.02222 0.02222" position="0 0.156 -2.444">
         </a-entity>
 
-        <!-- H1 — Cockpit (centro-alto) -->
-        <a-entity position="0 1.2 0.3"
+        <!--
+          SISTEMA ASSI (platform local space, post-snap a 35°):
+          GLB X → platform -Z  (l'asse lungo della macchina corre lungo Z)
+          La macchina è centrata a Z≈0, estensione Z da +2.5 (rear) a -2.5 (nose)
+          Altezze: ruote Y≈0.2, scocca Y≈0.5, cockpit Y≈0.9–1.2
+          Larghezza: ±0.8m su X
+          Le posizioni sono regolabili — comunicare se un hotspot è fuori
+        -->
+
+        <!-- H1 — Cockpit (centro macchina, alto) -->
+        <a-entity position="0 1.0 -0.2"
           hotspot="title:Cockpit; body:Abitacolo in fibra di carbonio.\nRoll hoop integrato.\nVisiera riscaldata anti-appannamento.; color:#cc44ff">
         </a-entity>
 
-        <!-- H2 — Propulsione (posteriore) -->
-        <a-entity position="-2.1 0.6 0"
+        <!-- H2 — Propulsione (posteriore, verso +Z) -->
+        <a-entity position="0 0.6 2.0"
           hotspot="title:Propulsione; body:Sistema pneumatico ad aria compressa.\nCapsule inserite nel posteriore.\nSpinta istantanea senza motore elettrico.; color:#ff6600">
         </a-entity>
 
-        <!-- H3 — Pneumatico anteriore -->
-        <a-entity position="1.4 0.15 0.8"
+        <!-- H3 — Pneumatico (lato sinistro, zona anteriore) -->
+        <a-entity position="-0.9 0.2 -1.5"
           hotspot="title:Pneumatico; body:Gomme a bassa resistenza.\nDiametro 13 pollici.\nFormulazione per piste indoor.; color:#00ccff">
         </a-entity>
 
-        <!-- H4 — Muso / Avantreno -->
-        <a-entity position="2.3 0.2 0"
+        <!-- H4 — Muso / Avantreno (estremità -Z) -->
+        <a-entity position="0 0.3 -2.3"
           hotspot="title:Avantreno; body:Profilo aerodinamico anteriore.\nMateriale: carbonio rinforzato.\nGeometria ottimizzata in CFD.; color:#00ff88">
         </a-entity>
 
       </a-entity>
 
       <!-- ═══ CAMERA ══════════════════════════════════════════════════════════ -->
-      <a-entity camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
+      <a-entity id="cam" camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
         <a-cursor fuse="false"
           raycaster="objects: .gaze-target, .car-trigger, .hotspot-trigger; far: 18"
           geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.018"
