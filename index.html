@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>Car Dealership VR</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-particle-system-component@1.1.x/dist/aframe-particle-system-component.min.js"></script>
     <script>
 
     AFRAME.registerComponent('rotate-y', {
@@ -29,6 +30,125 @@
         }
         this._s += (this._t - this._s) * Math.min((delta / this.data.duration) * 5, 1);
         this.el.object3D.scale.setScalar(this._s);
+      }
+    });
+
+    // Anello pulsante per gli hotspot
+    AFRAME.registerComponent('pulse-ring', {
+      schema: {
+        color:    { type: 'color',  default: '#8800ee' },
+        duration: { type: 'number', default: 1600 }
+      },
+      init: function () {
+        this._t = 0;
+        // Torus sottile come ring
+        this.ring = document.createElement('a-torus');
+        this.ring.setAttribute('radius', '0.12');
+        this.ring.setAttribute('radius-tubular', '0.012');
+        this.ring.setAttribute('rotation', '90 0 0');
+        this.ring.setAttribute('material',
+          `color: ${this.data.color}; emissive: ${this.data.color}; emissiveIntensity: 1.2; shader: flat; transparent: true`);
+        this.el.appendChild(this.ring);
+        // Dot centrale
+        this.dot = document.createElement('a-sphere');
+        this.dot.setAttribute('radius', '0.04');
+        this.dot.setAttribute('material',
+          `color: #ffffff; emissive: #ffffff; emissiveIntensity: 1; shader: flat`);
+        this.el.appendChild(this.dot);
+      },
+      tick: function (time, delta) {
+        this._t = (this._t + delta) % this.data.duration;
+        const p = this._t / this.data.duration;           // 0→1
+        const s = 1 + Math.sin(p * Math.PI * 2) * 0.25;  // scala 0.75→1.25
+        const op = 0.6 + Math.sin(p * Math.PI * 2) * 0.4;
+        this.ring.object3D.scale.set(s, s, s);
+        this.ring.components.material &&
+          (this.ring.components.material.material.opacity = op);
+      }
+    });
+
+    // Hotspot: mostra pannello info al mouseenter, nasconde al mouseleave
+    AFRAME.registerComponent('hotspot', {
+      schema: {
+        title:   { type: 'string', default: 'Info' },
+        body:    { type: 'string', default: '' },
+        color:   { type: 'color',  default: '#8800ee' },
+        panelOffset: { type: 'vec3', default: {x: 0, y: 0.55, z: 0} }
+      },
+      init: function () {
+        const d = this.data;
+        // Trigger invisibile
+        const trigger = document.createElement('a-sphere');
+        trigger.setAttribute('radius', '0.18');
+        trigger.setAttribute('class', 'gaze-target hotspot-trigger');
+        trigger.setAttribute('material', 'opacity: 0; transparent: true; shader: flat');
+        this.el.appendChild(trigger);
+
+        // Pannello info
+        this.panel = document.createElement('a-entity');
+        const po = d.panelOffset;
+        this.panel.setAttribute('position', `${po.x} ${po.y} ${po.z}`);
+        this.panel.object3D.scale.set(0, 0, 0);
+
+        // Sfondo pannello
+        const bg = document.createElement('a-plane');
+        bg.setAttribute('width',  '1.8');
+        bg.setAttribute('height', '0.85');
+        bg.setAttribute('material', `color: #0d0020; opacity: 0.97; transparent: true; side: double`);
+        this.panel.appendChild(bg);
+
+        // Bordo superiore colorato
+        const bar = document.createElement('a-box');
+        bar.setAttribute('position', `0 0.38 0.002`);
+        bar.setAttribute('width', '1.8'); bar.setAttribute('height', '0.08'); bar.setAttribute('depth', '0.005');
+        bar.setAttribute('material', `color: ${d.color}; emissive: ${d.color}; emissiveIntensity: 0.9; shader: flat`);
+        this.panel.appendChild(bar);
+
+        // Titolo
+        const title = document.createElement('a-text');
+        title.setAttribute('value', d.title.toUpperCase());
+        title.setAttribute('align', 'center');
+        title.setAttribute('color', '#ffffff');
+        title.setAttribute('width', '1.6');
+        title.setAttribute('position', '0 0.22 0.01');
+        title.setAttribute('wrap-count', '22');
+        this.panel.appendChild(title);
+
+        // Linea separatrice
+        const sep = document.createElement('a-box');
+        sep.setAttribute('position', `0 0.1 0.002`);
+        sep.setAttribute('width', '1.6'); sep.setAttribute('height', '0.008'); sep.setAttribute('depth', '0.004');
+        sep.setAttribute('material', `color: ${d.color}; emissive: ${d.color}; emissiveIntensity: 0.6; shader: flat`);
+        this.panel.appendChild(sep);
+
+        // Corpo testo
+        const body = document.createElement('a-text');
+        body.setAttribute('value', d.body);
+        body.setAttribute('align', 'center');
+        body.setAttribute('color', '#ccaaff');
+        body.setAttribute('width', '1.5');
+        body.setAttribute('position', '0 -0.12 0.01');
+        body.setAttribute('wrap-count', '32');
+        this.panel.appendChild(body);
+
+        this.el.appendChild(this.panel);
+
+        // Billboard: il pannello guarda sempre la camera
+        this.panel.setAttribute('look-at', '[camera]');
+
+        // Gaze events
+        this._tgt = 0; this._cur = 0;
+        trigger.addEventListener('mouseenter', () => { this._tgt = 1; });
+        trigger.addEventListener('mouseleave', () => { this._tgt = 0; });
+      },
+      tick: function (time, delta) {
+        if (Math.abs(this._cur - this._tgt) < 0.005) {
+          this._cur = this._tgt;
+          this.panel.object3D.scale.setScalar(this._cur);
+          return;
+        }
+        this._cur += (this._tgt - this._cur) * Math.min((delta / 280) * 5, 1);
+        this.panel.object3D.scale.setScalar(this._cur);
       }
     });
 
@@ -159,12 +279,105 @@
       <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)" position="-3 8.8 -6"  rotation="15 0 195"  scale="0.5 0.5 0.5"></a-entity>
       <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)" position=" 3 8.8 -6"  rotation="15 0 165"  scale="0.5 0.5 0.5"></a-entity>
 
+      <!-- ═══ PARTICELLE ═══════════════════════════════════════════════════════
+           Scintille attorno alla piattaforma — emesse dal bordo del disco
+      ══════════════════════════════════════════════════════════════════════════ -->
+      <!-- Scintille viola principali -->
+      <a-entity
+        position="0 -0.4 -6"
+        particle-system="
+          preset:         default;
+          color:          #cc44ff, #8800ee;
+          particleCount:  180;
+          maxAge:         2.2;
+          size:           0.06, 0.02;
+          velocityValue:  0 1.2 0;
+          velocitySpread: 2.6 0.4 2.6;
+          positionSpread: 2.5 0.05 2.5;
+          accelerationValue: 0 -0.3 0;
+          opacity:        0.9;
+          blending:       2;
+          rotateSystem:   false;
+          texture:        https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/star2.png
+        ">
+      </a-entity>
+
+      <!-- Scintille bianche piccole più lente — effetto polvere -->
+      <a-entity
+        position="0 -0.45 -6"
+        particle-system="
+          preset:         default;
+          color:          #ffffff, #aaaaff;
+          particleCount:  90;
+          maxAge:         3.5;
+          size:           0.03, 0.01;
+          velocityValue:  0 0.4 0;
+          velocitySpread: 2.8 0.2 2.8;
+          positionSpread: 2.4 0.02 2.4;
+          accelerationValue: 0 -0.05 0;
+          opacity:        0.5;
+          blending:       2;
+          rotateSystem:   false;
+          texture:        https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/star2.png
+        ">
+      </a-entity>
+
+      <!-- ═══ HOTSPOT INTERATTIVI ══════════════════════════════════════════════
+           Posizionati nel world space (non ruotano con la macchina).
+           La macchina è centrata a world pos (0, -0.5, -6), lunga ~5m sull'asse Z.
+           Posizioni approssimate sui punti chiave della vettura F1.
+      ══════════════════════════════════════════════════════════════════════════ -->
+
+      <!-- H1 — Cockpit / abitacolo (centro-alto della macchina) -->
+      <a-entity
+        position="0 1.0 -6"
+        pulse-ring="color: #cc44ff"
+        hotspot="
+          title: Cockpit;
+          body: Abitacolo monoscocca in fibra di carbonio.\nRoll hoop integrato.\nVisiera riscaldata anti-appannamento.;
+          color: #cc44ff;
+          panelOffset: 0 0.6 0">
+      </a-entity>
+
+      <!-- H2 — Sistema propulsivo / posteriore -->
+      <a-entity
+        position="0 0.5 -8.5"
+        pulse-ring="color: #ff6600"
+        hotspot="
+          title: Propulsione;
+          body: Sistema pneumatico ad aria compressa.\nCapsule inserite nel posteriore.\nSpinta istantanea senza motore elettrico.;
+          color: #ff6600;
+          panelOffset: 0 0.6 0">
+      </a-entity>
+
+      <!-- H3 — Ruota anteriore sinistra -->
+      <a-entity
+        position="-1.0 0.0 -4.0"
+        pulse-ring="color: #00ccff"
+        hotspot="
+          title: Pneumatico;
+          body: Pirelli P Zero 13\'\'\nComposizione: compound morbido.\nDiametro: 330mm.;
+          color: #00ccff;
+          panelOffset: 0 0.6 0">
+      </a-entity>
+
+      <!-- H4 — Alettone anteriore (anteriore della macchina) -->
+      <a-entity
+        position="0 0.2 -3.5"
+        pulse-ring="color: #00ff88"
+        hotspot="
+          title: Alettone Anteriore;
+          body: Carbonio ad alta resistenza.\nCarico aerodinamico: 400+ kg.\nAngolo regolabile in pit stop.;
+          color: #00ff88;
+          panelOffset: 0 0.6 0">
+      </a-entity>
+
       <!-- ═══ CAMERA ══════════════════════════════════════════════════════════ -->
       <a-entity camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
         <a-cursor fuse="false"
-          raycaster="objects: .gaze-target; far: 14"
+          raycaster="objects: .gaze-target, .hotspot-trigger; far: 18"
           geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.018"
-          material="color: #333333; shader: flat; opacity: 0.8">
+          material="color: #cc44ff; shader: flat; opacity: 0.9">
         </a-cursor>
       </a-entity>
 
