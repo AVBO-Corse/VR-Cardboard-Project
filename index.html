@@ -120,15 +120,18 @@
         this.ring.setAttribute('rotation', '90 0 0');
         this.ring.setAttribute('material',
           `color:${d.color}; emissive:${d.color}; emissiveIntensity:1.2; shader:flat; transparent:true; opacity:1`);
+        this.ring.object3D.scale.set(0, 0, 0);
         this.el.appendChild(this.ring);
 
         // Dot centrale
         this.dot = document.createElement('a-sphere');
         this.dot.setAttribute('radius', '0.045');
         this.dot.setAttribute('material', 'color:#ffffff; emissive:#ffffff; emissiveIntensity:1; shader:flat');
+        this.dot.object3D.scale.set(0, 0, 0);
         this.el.appendChild(this.dot);
 
-        // Trigger gaze (sfera invisibile — radius grande per facilità di puntamento)
+        // Trigger gaze — NON scalato con il resto, sempre a scala 1 nel world
+        // così il raycaster lo colpisce anche quando hotspot è "nascosto"
         this.trigger = document.createElement('a-sphere');
         this.trigger.setAttribute('radius', '0.35');
         this.trigger.setAttribute('class', 'hotspot-trigger');
@@ -174,11 +177,11 @@
 
         this.el.appendChild(this.panel);
 
-        this.trigger.addEventListener('mouseenter', () => { this._panelTgt = 1; });
+        // Il pannello apre/chiude solo se l'hotspot è visibile
+        this.trigger.addEventListener('mouseenter', () => {
+          if (this._visible) this._panelTgt = 1;
+        });
         this.trigger.addEventListener('mouseleave', () => { this._panelTgt = 0; });
-
-        // Inizia nascosto
-        this.el.object3D.scale.set(0, 0, 0);
       },
 
       setVisible: function (v) {
@@ -187,33 +190,33 @@
       },
 
       tick: function (time, delta) {
-        // Visibilità hotspot (fade in/out)
+        // Fade in/out di ring e dot (NON dell'entity root)
         const tgt = this._visible ? 1 : 0;
         if (Math.abs(this._visScale - tgt) > 0.005) {
           this._visScale += (tgt - this._visScale) * Math.min(delta / 300 * 5, 1);
-          this.el.object3D.scale.setScalar(this._visScale);
         } else {
           this._visScale = tgt;
-          this.el.object3D.scale.setScalar(tgt);
         }
-        if (this._visScale < 0.05) return;
+        this.ring.object3D.scale.setScalar(this._visScale);
+        this.dot.object3D.scale.setScalar(this._visScale);
 
-        // Pulsazione anello
-        this._pulseT = (this._pulseT + delta) % 1600;
-        const p = this._pulseT / 1600;
-        const s = 1 + Math.sin(p * Math.PI * 2) * 0.22;
-        this.ring.object3D.scale.set(s, s, s);
-        if (this.ring.components.material)
-          this.ring.components.material.material.opacity = 0.55 + Math.sin(p * Math.PI * 2) * 0.45;
+        if (this._visScale > 0.05) {
+          // Pulsazione anello
+          this._pulseT = (this._pulseT + delta) % 1600;
+          const p = this._pulseT / 1600;
+          const s = this._visScale * (1 + Math.sin(p * Math.PI * 2) * 0.22);
+          this.ring.object3D.scale.setScalar(s);
+          if (this.ring.components.material)
+            this.ring.components.material.material.opacity = 0.55 + Math.sin(p * Math.PI * 2) * 0.45;
+        }
 
-        // Pannello info (fade in/out al gaze)
+        // Pannello info
         if (Math.abs(this._panelOpen - this._panelTgt) > 0.005) {
           this._panelOpen += (this._panelTgt - this._panelOpen) * Math.min(delta / 280 * 5, 1);
-          this.panel.object3D.scale.setScalar(this._panelOpen);
         } else {
           this._panelOpen = this._panelTgt;
-          this.panel.object3D.scale.setScalar(this._panelTgt);
         }
+        this.panel.object3D.scale.setScalar(this._panelOpen);
       }
     });
 
