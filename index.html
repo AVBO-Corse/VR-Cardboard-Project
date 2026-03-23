@@ -72,7 +72,7 @@
         const dot  = this._camDir.dot(this._toPlat.normalize());
 
         // Attiva se: vicino (<8m) E guarda verso la piattaforma (angolo <40°)
-        const looking = dist < 8.0 && dot > 0.77;
+        const looking = dist < 8.0 && dot > 0.82;
 
         if (looking && !this._active) {
           if (this._leaveTimer) { clearTimeout(this._leaveTimer); this._leaveTimer = null; }
@@ -162,7 +162,7 @@
 
         // Pannello info — no look-at component, lo orientiamo nel tick
         this.panel = document.createElement('a-entity');
-        this.panel.setAttribute('position', '0 0.55 0');
+        this.panel.setAttribute('position', '0 0.8 0');
         this.panel.object3D.scale.set(0, 0, 0);
 
         const bg = document.createElement('a-plane');
@@ -438,8 +438,8 @@
           hotspot="title:Cockpit; body:Abitacolo in fibra di carbonio.\nRoll hoop integrato.\nVisiera riscaldata anti-appannamento.; color:#cc44ff">
         </a-entity>
 
-        <!-- H2 — Propulsione: lato anteriore sinistro, visibile e vicino alla scocca -->
-        <a-entity position="-0.5 0.55 -1.8"
+        <!-- H2 — Propulsione: davanti alla scocca, alto e visibile -->
+        <a-entity position="-1.8 1.0 -1.2"
           hotspot="title:Propulsione; body:Sistema pneumatico ad aria compressa.\nCapsule inserite nel posteriore.\nSpinta istantanea senza motore elettrico.; color:#ff6600">
         </a-entity>
 
