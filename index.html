@@ -45,14 +45,17 @@
     // ── Piattaforma: stop rotazione + mostra/nasconde hotspot al gaze ─────────
     AFRAME.registerComponent('car-platform', {
       init: function () {
-        const sphere = document.createElement('a-sphere');
-        sphere.setAttribute('radius', '3.2');
-        sphere.setAttribute('class', 'car-trigger');
-        sphere.setAttribute('material', 'opacity:0; transparent:true; shader:flat; side:double');
-        this.el.appendChild(sphere);
+        // Cilindro piatto — copre solo la base, non blocca le hotspot in altezza
+        const disc = document.createElement('a-cylinder');
+        disc.setAttribute('height',  '0.5');
+        disc.setAttribute('radius',  '2.8');
+        disc.setAttribute('class',   'car-trigger');
+        disc.setAttribute('position','0 0.2 0');
+        disc.setAttribute('material','opacity:0; transparent:true; shader:flat; side:double');
+        this.el.appendChild(disc);
         this._active = false;
 
-        sphere.addEventListener('mouseenter', () => {
+        disc.addEventListener('mouseenter', () => {
           if (this._active) return;
           this._active = true;
           const rot = this.el.components['rotate-y'];
@@ -64,7 +67,7 @@
           }, 420);
         });
 
-        sphere.addEventListener('mouseleave', () => {
+        disc.addEventListener('mouseleave', () => {
           if (!this._active) return;
           this._active = false;
           this.el.querySelectorAll('[hotspot]').forEach(h => {
@@ -138,11 +141,10 @@
         this.trigger.setAttribute('material', 'opacity:0; transparent:true; shader:flat');
         this.el.appendChild(this.trigger);
 
-        // Pannello info
+        // Pannello info — no look-at component, lo orientiamo nel tick
         this.panel = document.createElement('a-entity');
         this.panel.setAttribute('position', '0 0.8 0');
         this.panel.object3D.scale.set(0, 0, 0);
-        this.panel.setAttribute('look-at', '#cam');
 
         const bg = document.createElement('a-plane');
         bg.setAttribute('width', '1.9'); bg.setAttribute('height', '0.9');
@@ -176,6 +178,12 @@
         this.panel.appendChild(body);
 
         this.el.appendChild(this.panel);
+
+        // Camera ref per lookAt manuale (più efficiente di look-at component)
+        this._cam = null;
+        document.querySelector('a-scene').addEventListener('loaded', () => {
+          this._cam = document.getElementById('cam');
+        });
 
         // Il pannello apre/chiude solo se l'hotspot è visibile
         this.trigger.addEventListener('mouseenter', () => {
@@ -217,6 +225,13 @@
           this._panelOpen = this._panelTgt;
         }
         this.panel.object3D.scale.setScalar(this._panelOpen);
+
+        // Orienta pannello verso camera (solo quando aperto)
+        if (this._panelOpen > 0.05 && this._cam) {
+          const wp = new THREE.Vector3();
+          this._cam.object3D.getWorldPosition(wp);
+          this.panel.object3D.lookAt(wp);
+        }
       }
     });
 
@@ -288,19 +303,11 @@
         <a-asset-item id="auto" src="macchina_test.glb"></a-asset-item>
       </a-assets>
 
-      <!-- ═══ LUCI ════════════════════════════════════════════════════════════ -->
-      <a-light type="ambient"    color="#888888" intensity="0.3"></a-light>
-      <a-light type="point"      position="-3 8.5 -2"  color="#fffaf0" intensity="1.4" distance="11"></a-light>
-      <a-light type="point"      position=" 3 8.5 -2"  color="#fffaf0" intensity="1.4" distance="11"></a-light>
-      <a-light type="point"      position="-3 8.5 -8"  color="#fffaf0" intensity="1.2" distance="10"></a-light>
-      <a-light type="point"      position=" 3 8.5 -8"  color="#fffaf0" intensity="1.2" distance="10"></a-light>
-      <a-light type="spot"       position="0 7 -6"    rotation="-90 0 0"   color="#ffffff" intensity="3.5" angle="28" penumbra="0.4"></a-light>
-      <a-light type="spot"       position="-3 6 -6"   rotation="-75 20 0"  color="#fff0e0" intensity="1.5" angle="22" penumbra="0.5"></a-light>
-      <a-light type="spot"       position=" 3 6 -6"   rotation="-75 -20 0" color="#e0f0ff" intensity="1.5" angle="22" penumbra="0.5"></a-light>
-      <a-light type="point"      position="-8 3.5  2"  color="#ffd580" intensity="1.0" distance="7"></a-light>
-      <a-light type="point"      position="-8 3.5 -4"  color="#ffd580" intensity="0.9" distance="6"></a-light>
-      <a-light type="point"      position=" 9 3.5 -2"  color="#fffaf0" intensity="1.0" distance="7"></a-light>
-      <a-light type="point"      position=" 0 -0.3 -6" color="#9933ff" intensity="0.9" distance="4"></a-light>
+      <!-- ═══ LUCI (ridotte per performance) ═════════════════════════════════ -->
+      <a-light type="ambient" color="#999999" intensity="0.5"></a-light>
+      <a-light type="point"   position="0 8.5 -6"  color="#fffaf0" intensity="1.6" distance="14"></a-light>
+      <a-light type="spot"    position="0 7 -6" rotation="-90 0 0" color="#ffffff" intensity="3.0" angle="30" penumbra="0.4"></a-light>
+      <a-light type="point"   position="0 -0.3 -6" color="#9933ff" intensity="0.9" distance="4"></a-light>
 
       <!-- ═══ SHOWROOM ═════════════════════════════════════════════════════════ -->
 
@@ -363,24 +370,14 @@
         material="src:#logo-img; shader:flat; transparent:true; alphaTest:0.15; side:double">
       </a-plane>
 
-      <!-- ═══ ZONA ATTESA ══════════════════════════════════════════════════════ -->
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/e78c10a3-58e6-400b-a576-c5db78c2d30f/model.glb)" position="-9 -0.51 -1"    rotation="0  90 0" scale="1.5 1.5 1.5"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/f47310a0-4d22-48a3-a2ce-62f67bcc998d/model.glb)" position="-9 -0.51 -4"    rotation="0  90 0" scale="1.5 1.5 1.5"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/68c4bcbd-0c5d-42ee-ab91-4cce6672fa18/model.glb)" position="-7 -0.51 -2"    rotation="0   0 0" scale="1.2 1.2 1.2"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/98dd45a1-0682-4d44-83d1-32fa2a4fca5b/model.glb)" position="-10.5 -0.51 0.5" rotation="0   0 0" scale="1.3 1.3 1.3"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position="-10.5 -0.51 -7"  rotation="0  45 0" scale="1.5 1.5 1.5"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb)" position="-10.5 -0.51  3"  rotation="0  20 0" scale="1.4 1.4 1.4"></a-entity>
+      <!-- ═══ ZONA ATTESA (geometry semplice, no CDN) ════════════════════════ -->
+      <a-box position="-9 0.2 -2.5" width="3" height="0.9" depth="1.2" color="#1a1a1a" material="metalness:0.3;roughness:0.7"></a-box>
+      <a-box position="-9 0.2 -4.5" width="3" height="0.9" depth="1.2" color="#1a1a1a" material="metalness:0.3;roughness:0.7"></a-box>
+      <a-box position="-7.2 0.1 -3.5" width="1.2" height="0.45" depth="1.2" color="#111" material="metalness:0.6;roughness:0.3"></a-box>
 
-      <!-- ═══ ZONA RECEPTION ═══════════════════════════════════════════════════ -->
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/0716218b-3aae-48e6-8ddd-185cf7f7b7d7/model.glb)" position=" 9.5 -0.51 -3.5" rotation="0 180 0" scale="1.2 1.2 1.2"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/64699642-a4c2-4850-9c4b-558a328ed1bf/model.glb)" position=" 9.5 -0.51 -3.0" rotation="0 180 0" scale="1.0 1.0 1.0"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position="11.5 -0.51 -1"   rotation="0   0 0" scale="1.3 1.3 1.3"></a-entity>
-
-      <!-- ═══ PIANTE ANGOLI ════════════════════════════════════════════════════ -->
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position="-11.5 -0.51 -13" rotation="0  30 0" scale="2.0 2.0 2.0"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position=" 11.5 -0.51 -13" rotation="0 -30 0" scale="2.0 2.0 2.0"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb)" position="-11.5 -0.51   4" rotation="0   0 0" scale="1.8 1.8 1.8"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb)" position=" 11.5 -0.51   4" rotation="0   0 0" scale="1.8 1.8 1.8"></a-entity>
+      <!-- ═══ ZONA RECEPTION (geometry semplice) ══════════════════════════════ -->
+      <a-box position="9 0.35 -3" width="2.5" height="1.1" depth="1.0" color="#222" material="metalness:0.5;roughness:0.4"></a-box>
+      <a-box position="9 1.0 -3"  width="2.6" height="0.06" depth="1.1" color="#555" material="metalness:0.8;roughness:0.2"></a-box>
 
       <!-- ═══ PIATTAFORMA ROTANTE ══════════════════════════════════════════════
            Gli hotspot sono FIGLI della piattaforma:
