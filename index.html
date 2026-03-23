@@ -43,40 +43,35 @@
     });
 
     // ── Piattaforma: stop rotazione + mostra/nasconde hotspot per prossimità ──
-    // NON usa raycaster — controlla ogni tick se la camera guarda verso la piattaforma
     AFRAME.registerComponent('car-platform', {
       init: function () {
         this._active     = false;
         this._leaveTimer = null;
-        this._cam        = null;
-        document.querySelector('a-scene').addEventListener('loaded', () => {
-          this._cam = document.getElementById('cam');
-        });
+        // Vettori riutilizzabili — no new THREE.Vector3() ogni tick
+        this._platPos = new THREE.Vector3();
+        this._camPos  = new THREE.Vector3();
+        this._camDir  = new THREE.Vector3();
+        this._toPlat  = new THREE.Vector3();
       },
       tick: function () {
-        if (!this._cam) return;
+        // Lazy lookup camera
+        if (!this._camEl) {
+          this._camEl = document.getElementById('cam');
+          if (!this._camEl) return;
+        }
 
-        // Posizione world della piattaforma
-        const platPos = new THREE.Vector3();
-        this.el.object3D.getWorldPosition(platPos);
+        this.el.object3D.getWorldPosition(this._platPos);
+        this._camEl.object3D.getWorldPosition(this._camPos);
 
-        // Posizione world della camera
-        const camPos = new THREE.Vector3();
-        this._cam.object3D.getWorldPosition(camPos);
+        // getWorldDirection restituisce +Z, la camera guarda -Z → neghiamo
+        this._camEl.object3D.getWorldDirection(this._camDir);
+        this._camDir.negate();
 
-        // Direzione in cui guarda la camera
-        const camDir = new THREE.Vector3();
-        this._cam.object3D.getWorldDirection(camDir);
+        this._toPlat.subVectors(this._platPos, this._camPos);
+        const dist = this._toPlat.length();
+        const dot  = this._camDir.dot(this._toPlat.normalize());
 
-        // Vettore camera → piattaforma
-        const toPlat = new THREE.Vector3().subVectors(platPos, camPos);
-        const dist   = toPlat.length();
-
-        // Normalizza per dot product
-        const toPlatN = toPlat.clone().normalize();
-        const dot = camDir.dot(toPlatN); // 1 = guarda dritto, 0 = perpendicolare
-
-        // Attiva se: distanza < 8m E camera punta verso piattaforma (angolo < ~50°)
+        // Attiva se: vicino (<8m) E guarda verso la piattaforma (angolo <50°)
         const looking = dist < 8.0 && dot > 0.64;
 
         if (looking && !this._active) {
@@ -90,10 +85,9 @@
             });
           }, 450);
         } else if (!looking && this._active) {
-          if (this._leaveTimer) return; // già in attesa
+          if (this._leaveTimer) return;
           this._leaveTimer = setTimeout(() => {
             this._leaveTimer = null;
-            // Ricontrolla — potrebbe essere rientrato
             if (!this._active) return;
             this._active = false;
             this.el.querySelectorAll('[hotspot]').forEach(h => {
@@ -101,7 +95,7 @@
             });
             const rot = this.el.components['rotate-y'];
             if (rot) rot.resume();
-          }, 600); // 600ms di grazia prima di disattivare
+          }, 600);
         }
       }
     });
