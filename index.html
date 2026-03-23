@@ -95,7 +95,7 @@
             });
             const rot = this.el.components['rotate-y'];
             if (rot) rot.resume();
-          }, 600);
+          }, 200);
         }
       }
     });
@@ -438,19 +438,14 @@
           hotspot="title:Cockpit; body:Abitacolo in fibra di carbonio.\nRoll hoop integrato.\nVisiera riscaldata anti-appannamento.; color:#cc44ff">
         </a-entity>
 
-        <!-- H2 — Propulsione (posteriore, verso +Z) -->
-        <a-entity position="0 0.6 2.0"
+        <!-- H2 — Propulsione (spostato sul lato anteriore, visibile) -->
+        <a-entity position="2.0 0.7 -0.3"
           hotspot="title:Propulsione; body:Sistema pneumatico ad aria compressa.\nCapsule inserite nel posteriore.\nSpinta istantanea senza motore elettrico.; color:#ff6600">
         </a-entity>
 
         <!-- H3 — Pneumatico (lato sinistro, zona anteriore) -->
         <a-entity position="-0.9 0.2 -1.5"
           hotspot="title:Pneumatico; body:Gomme a bassa resistenza.\nDiametro 13 pollici.\nFormulazione per piste indoor.; color:#00ccff">
-        </a-entity>
-
-        <!-- H4 — Muso / Avantreno (estremità -Z) -->
-        <a-entity position="0 0.3 -2.3"
-          hotspot="title:Avantreno; body:Profilo aerodinamico anteriore.\nMateriale: carbonio rinforzato.\nGeometria ottimizzata in CFD.; color:#00ff88">
         </a-entity>
 
       </a-entity>
