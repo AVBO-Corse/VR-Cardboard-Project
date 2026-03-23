@@ -2,17 +2,83 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Car Dealership VR</title>
+    <title>AVBO Corse — VR Showroom</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script>
 
+    // ── Rotazione Y con pause/snap/resume ────────────────────────────────────
     AFRAME.registerComponent('rotate-y', {
-      schema: { speed: { type: 'number', default: 0.3 } },
+      schema: { speed: { type: 'number', default: 0.25 } },
+      init: function () {
+        this._paused   = false;
+        this._snapping = false;
+        this._snapTgt  = 0;
+      },
+      pauseSnap: function () {
+        this._paused   = true;
+        this._snapping = true;
+        this._snapTgt  = 0; // angolo dove la macchina mostra il lato alla camera
+      },
+      resume: function () {
+        this._paused   = false;
+        this._snapping = false;
+      },
       tick: function (time, delta) {
-        this.el.object3D.rotation.y += THREE.MathUtils.degToRad(this.data.speed) * (delta / 1000) * 60;
+        const obj = this.el.object3D;
+        if (this._snapping) {
+          let diff = this._snapTgt - obj.rotation.y;
+          while (diff >  Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          if (Math.abs(diff) < 0.01) {
+            obj.rotation.y = this._snapTgt;
+            this._snapping = false;
+          } else {
+            obj.rotation.y += diff * Math.min(delta / 350, 1);
+          }
+          return;
+        }
+        if (this._paused) return;
+        obj.rotation.y += THREE.MathUtils.degToRad(this.data.speed) * (delta / 1000) * 60;
       }
     });
 
+    // ── Piattaforma: stop rotazione + mostra/nasconde hotspot al gaze ─────────
+    AFRAME.registerComponent('car-platform', {
+      init: function () {
+        const sphere = document.createElement('a-sphere');
+        sphere.setAttribute('radius', '3.2');
+        sphere.setAttribute('class', 'car-trigger');
+        sphere.setAttribute('material', 'opacity:0; transparent:true; shader:flat; side:double');
+        this.el.appendChild(sphere);
+        this._active = false;
+
+        sphere.addEventListener('mouseenter', () => {
+          if (this._active) return;
+          this._active = true;
+          const rot = this.el.components['rotate-y'];
+          if (rot) rot.pauseSnap();
+          setTimeout(() => {
+            this.el.querySelectorAll('[hotspot]').forEach(h => {
+              if (h.components.hotspot) h.components.hotspot.setVisible(true);
+            });
+          }, 420);
+        });
+
+        sphere.addEventListener('mouseleave', () => {
+          if (!this._active) return;
+          this._active = false;
+          this.el.querySelectorAll('[hotspot]').forEach(h => {
+            if (h.components.hotspot) h.components.hotspot.setVisible(false);
+          });
+          setTimeout(() => {
+            const rot = this.el.components['rotate-y'];
+            if (rot) rot.resume();
+          }, 300);
+        });
+      }
+    });
+
+    // ── Pannelli gaze generici (per i 4 pannelli info del viewer) ─────────────
     AFRAME.registerComponent('gaze-body', {
       schema: { duration: { type: 'number', default: 350 } },
       init: function () {
@@ -23,193 +89,180 @@
       },
       tick: function (time, delta) {
         if (Math.abs(this._s - this._t) < 0.005) {
-          this._s = this._t;
-          this.el.object3D.scale.setScalar(this._s);
-          return;
+          this._s = this._t; this.el.object3D.scale.setScalar(this._s); return;
         }
         this._s += (this._t - this._s) * Math.min((delta / this.data.duration) * 5, 1);
         this.el.object3D.scale.setScalar(this._s);
       }
     });
 
-    // Anello pulsante per gli hotspot
-    AFRAME.registerComponent('pulse-ring', {
-      schema: {
-        color:    { type: 'color',  default: '#8800ee' },
-        duration: { type: 'number', default: 1600 }
-      },
-      init: function () {
-        this._t = 0;
-        // Torus sottile come ring
-        this.ring = document.createElement('a-torus');
-        this.ring.setAttribute('radius', '0.12');
-        this.ring.setAttribute('radius-tubular', '0.012');
-        this.ring.setAttribute('rotation', '90 0 0');
-        this.ring.setAttribute('material',
-          `color: ${this.data.color}; emissive: ${this.data.color}; emissiveIntensity: 1.2; shader: flat; transparent: true`);
-        this.el.appendChild(this.ring);
-        // Dot centrale
-        this.dot = document.createElement('a-sphere');
-        this.dot.setAttribute('radius', '0.04');
-        this.dot.setAttribute('material',
-          `color: #ffffff; emissive: #ffffff; emissiveIntensity: 1; shader: flat`);
-        this.el.appendChild(this.dot);
-      },
-      tick: function (time, delta) {
-        this._t = (this._t + delta) % this.data.duration;
-        const p = this._t / this.data.duration;           // 0→1
-        const s = 1 + Math.sin(p * Math.PI * 2) * 0.25;  // scala 0.75→1.25
-        const op = 0.6 + Math.sin(p * Math.PI * 2) * 0.4;
-        this.ring.object3D.scale.set(s, s, s);
-        this.ring.components.material &&
-          (this.ring.components.material.material.opacity = op);
-      }
-    });
-
-    // Hotspot: mostra pannello info al mouseenter, nasconde al mouseleave
+    // ── Hotspot sulla macchina ────────────────────────────────────────────────
+    // Nasce nascosto. setVisible() controllato da car-platform.
+    // Gaze sul dot → mostra pannello info.
     AFRAME.registerComponent('hotspot', {
       schema: {
-        title:   { type: 'string', default: 'Info' },
-        body:    { type: 'string', default: '' },
-        color:   { type: 'color',  default: '#8800ee' },
-        panelOffset: { type: 'vec3', default: {x: 0, y: 0.55, z: 0} }
+        title: { type: 'string', default: 'Info' },
+        body:  { type: 'string', default: '' },
+        color: { type: 'color',  default: '#cc44ff' }
       },
       init: function () {
         const d = this.data;
-        // Trigger invisibile
-        const trigger = document.createElement('a-sphere');
-        trigger.setAttribute('radius', '0.18');
-        trigger.setAttribute('class', 'gaze-target hotspot-trigger');
-        trigger.setAttribute('material', 'opacity: 0; transparent: true; shader: flat');
-        this.el.appendChild(trigger);
+        this._visible  = false;
+        this._visScale = 0;
+        this._panelOpen = 0;
+        this._panelTgt  = 0;
+        this._pulseT    = Math.random() * 1600;
 
-        // Pannello info
+        // Anello pulsante
+        this.ring = document.createElement('a-torus');
+        this.ring.setAttribute('radius', '0.13');
+        this.ring.setAttribute('radius-tubular', '0.013');
+        this.ring.setAttribute('rotation', '90 0 0');
+        this.ring.setAttribute('material',
+          `color:${d.color}; emissive:${d.color}; emissiveIntensity:1.2; shader:flat; transparent:true; opacity:1`);
+        this.el.appendChild(this.ring);
+
+        // Dot centrale
+        this.dot = document.createElement('a-sphere');
+        this.dot.setAttribute('radius', '0.045');
+        this.dot.setAttribute('material', 'color:#ffffff; emissive:#ffffff; emissiveIntensity:1; shader:flat');
+        this.el.appendChild(this.dot);
+
+        // Trigger gaze (sfera invisibile)
+        this.trigger = document.createElement('a-sphere');
+        this.trigger.setAttribute('radius', '0.22');
+        this.trigger.setAttribute('class', 'hotspot-trigger');
+        this.trigger.setAttribute('material', 'opacity:0; transparent:true; shader:flat');
+        this.el.appendChild(this.trigger);
+
+        // Pannello info (figlio del hotspot, guarda sempre la camera)
         this.panel = document.createElement('a-entity');
-        const po = d.panelOffset;
-        this.panel.setAttribute('position', `${po.x} ${po.y} ${po.z}`);
+        this.panel.setAttribute('position', '0 0.75 0');
         this.panel.object3D.scale.set(0, 0, 0);
+        this.panel.setAttribute('look-at', '[camera]');
 
-        // Sfondo pannello
         const bg = document.createElement('a-plane');
-        bg.setAttribute('width',  '1.8');
-        bg.setAttribute('height', '0.85');
-        bg.setAttribute('material', `color: #0d0020; opacity: 0.97; transparent: true; side: double`);
+        bg.setAttribute('width', '1.9'); bg.setAttribute('height', '0.9');
+        bg.setAttribute('material', 'color:#0a001a; opacity:0.96; transparent:true; side:double');
         this.panel.appendChild(bg);
 
-        // Bordo superiore colorato
         const bar = document.createElement('a-box');
-        bar.setAttribute('position', `0 0.38 0.002`);
-        bar.setAttribute('width', '1.8'); bar.setAttribute('height', '0.08'); bar.setAttribute('depth', '0.005');
-        bar.setAttribute('material', `color: ${d.color}; emissive: ${d.color}; emissiveIntensity: 0.9; shader: flat`);
+        bar.setAttribute('position', '0 0.41 0.002');
+        bar.setAttribute('width', '1.9'); bar.setAttribute('height', '0.085'); bar.setAttribute('depth', '0.004');
+        bar.setAttribute('material', `color:${d.color}; emissive:${d.color}; emissiveIntensity:0.9; shader:flat`);
         this.panel.appendChild(bar);
 
-        // Titolo
         const title = document.createElement('a-text');
         title.setAttribute('value', d.title.toUpperCase());
-        title.setAttribute('align', 'center');
-        title.setAttribute('color', '#ffffff');
-        title.setAttribute('width', '1.6');
-        title.setAttribute('position', '0 0.22 0.01');
-        title.setAttribute('wrap-count', '22');
+        title.setAttribute('align', 'center'); title.setAttribute('color', '#ffffff');
+        title.setAttribute('width', '1.7'); title.setAttribute('position', '0 0.24 0.01');
+        title.setAttribute('wrap-count', '24');
         this.panel.appendChild(title);
 
-        // Linea separatrice
         const sep = document.createElement('a-box');
-        sep.setAttribute('position', `0 0.1 0.002`);
-        sep.setAttribute('width', '1.6'); sep.setAttribute('height', '0.008'); sep.setAttribute('depth', '0.004');
-        sep.setAttribute('material', `color: ${d.color}; emissive: ${d.color}; emissiveIntensity: 0.6; shader: flat`);
+        sep.setAttribute('position', '0 0.12 0.002');
+        sep.setAttribute('width', '1.7'); sep.setAttribute('height', '0.007'); sep.setAttribute('depth', '0.003');
+        sep.setAttribute('material', `color:${d.color}; emissive:${d.color}; emissiveIntensity:0.5; shader:flat`);
         this.panel.appendChild(sep);
 
-        // Corpo testo
         const body = document.createElement('a-text');
         body.setAttribute('value', d.body);
-        body.setAttribute('align', 'center');
-        body.setAttribute('color', '#ccaaff');
-        body.setAttribute('width', '1.5');
-        body.setAttribute('position', '0 -0.12 0.01');
-        body.setAttribute('wrap-count', '32');
+        body.setAttribute('align', 'center'); body.setAttribute('color', '#ccaaff');
+        body.setAttribute('width', '1.6'); body.setAttribute('position', '0 -0.16 0.01');
+        body.setAttribute('wrap-count', '34');
         this.panel.appendChild(body);
 
         this.el.appendChild(this.panel);
 
-        // Billboard: il pannello guarda sempre la camera
-        this.panel.setAttribute('look-at', '[camera]');
+        this.trigger.addEventListener('mouseenter', () => { this._panelTgt = 1; });
+        this.trigger.addEventListener('mouseleave', () => { this._panelTgt = 0; });
 
-        // Gaze events
-        this._tgt = 0; this._cur = 0;
-        trigger.addEventListener('mouseenter', () => { this._tgt = 1; });
-        trigger.addEventListener('mouseleave', () => { this._tgt = 0; });
+        // Inizia nascosto
+        this.el.object3D.scale.set(0, 0, 0);
       },
+
+      setVisible: function (v) {
+        this._visible = v;
+        if (!v) this._panelTgt = 0;
+      },
+
       tick: function (time, delta) {
-        if (Math.abs(this._cur - this._tgt) < 0.005) {
-          this._cur = this._tgt;
-          this.panel.object3D.scale.setScalar(this._cur);
-          return;
+        // Visibilità hotspot (fade in/out)
+        const tgt = this._visible ? 1 : 0;
+        if (Math.abs(this._visScale - tgt) > 0.005) {
+          this._visScale += (tgt - this._visScale) * Math.min(delta / 300 * 5, 1);
+          this.el.object3D.scale.setScalar(this._visScale);
+        } else {
+          this._visScale = tgt;
+          this.el.object3D.scale.setScalar(tgt);
         }
-        this._cur += (this._tgt - this._cur) * Math.min((delta / 280) * 5, 1);
-        this.panel.object3D.scale.setScalar(this._cur);
+        if (this._visScale < 0.05) return;
+
+        // Pulsazione anello
+        this._pulseT = (this._pulseT + delta) % 1600;
+        const p = this._pulseT / 1600;
+        const s = 1 + Math.sin(p * Math.PI * 2) * 0.22;
+        this.ring.object3D.scale.set(s, s, s);
+        if (this.ring.components.material)
+          this.ring.components.material.material.opacity = 0.55 + Math.sin(p * Math.PI * 2) * 0.45;
+
+        // Pannello info (fade in/out al gaze)
+        if (Math.abs(this._panelOpen - this._panelTgt) > 0.005) {
+          this._panelOpen += (this._panelTgt - this._panelOpen) * Math.min(delta / 280 * 5, 1);
+          this.panel.object3D.scale.setScalar(this._panelOpen);
+        } else {
+          this._panelOpen = this._panelTgt;
+          this.panel.object3D.scale.setScalar(this._panelTgt);
+        }
       }
     });
 
-    // ── Particelle Three.js native — niente dipendenze esterne ──────────────
+    // ── Particelle Three.js native ────────────────────────────────────────────
     AFRAME.registerComponent('spark-particles', {
       schema: {
-        count:  { type: 'number', default: 220 },
+        count:  { type: 'number', default: 80 },
         radius: { type: 'number', default: 2.6 },
         color1: { type: 'color',  default: '#cc44ff' },
-        color2: { type: 'color',  default: '#ffffff' }
+        color2: { type: 'color',  default: '#aaaaff' }
       },
       init: function () {
-        const d = this.data;
-        const N = d.count;
-        const pos   = new Float32Array(N * 3);
-        const col   = new Float32Array(N * 3);
-        const vel   = new Float32Array(N * 3);
-        const ages  = new Float32Array(N);
-        const lives = new Float32Array(N);
-        const c1 = new THREE.Color(d.color1);
-        const c2 = new THREE.Color(d.color2);
+        const d = this.data, N = d.count;
+        const pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
+        const vel = new Float32Array(N * 3), ages = new Float32Array(N), lives = new Float32Array(N);
+        const c1 = new THREE.Color(d.color1), c2 = new THREE.Color(d.color2);
 
         const reset = (i) => {
-          const angle = Math.random() * Math.PI * 2;
-          const r = d.radius * (0.85 + Math.random() * 0.15);
-          pos[i*3]   = Math.cos(angle) * r;
-          pos[i*3+1] = (Math.random() - 0.5) * 0.1;
-          pos[i*3+2] = Math.sin(angle) * r;
-          vel[i*3]   = Math.cos(angle) * (Math.random() * 0.3);
-          vel[i*3+1] = 0.4 + Math.random() * 1.4;
-          vel[i*3+2] = Math.sin(angle) * (Math.random() * 0.3);
-          ages[i]  = Math.random() * 2.5;
-          lives[i] = 1.5 + Math.random() * 1.8;
+          const a = Math.random() * Math.PI * 2;
+          const r = d.radius * (0.88 + Math.random() * 0.12);
+          pos[i*3] = Math.cos(a)*r; pos[i*3+1] = (Math.random()-.5)*.08; pos[i*3+2] = Math.sin(a)*r;
+          vel[i*3] = Math.cos(a)*Math.random()*.2; vel[i*3+1] = .3+Math.random()*1.1; vel[i*3+2] = Math.sin(a)*Math.random()*.2;
+          ages[i] = Math.random()*2.5; lives[i] = 1.4+Math.random()*1.6;
           const c = new THREE.Color().lerpColors(c1, c2, Math.random());
           col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
         };
-        for (let i = 0; i < N; i++) reset(i);
+        for (let i=0; i<N; i++) reset(i);
 
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
         geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
         const mat = new THREE.PointsMaterial({
-          size: 0.07, vertexColors: true, transparent: true, opacity: 0.85,
-          blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+          size:.06, vertexColors:true, transparent:true, opacity:.8,
+          blending:THREE.AdditiveBlending, depthWrite:false, sizeAttenuation:true
         });
         this.points = new THREE.Points(geo, mat);
         this.el.object3D.add(this.points);
-        this._pos = pos; this._vel = vel;
-        this._ages = ages; this._lives = lives;
-        this._N = N; this._reset = reset; this._geo = geo;
+        this._pos=pos; this._vel=vel; this._ages=ages; this._lives=lives;
+        this._N=N; this._reset=reset; this._geo=geo;
       },
       tick: function (time, delta) {
-        const dt = Math.min(delta / 1000, 0.05);
-        const pos = this._pos, vel = this._vel;
-        const ages = this._ages, lives = this._lives;
-        for (let i = 0; i < this._N; i++) {
-          ages[i] += dt;
-          if (ages[i] >= lives[i]) { this._reset(i); ages[i] = 0; continue; }
-          vel[i*3+1] -= 0.5 * dt;
-          pos[i*3]   += vel[i*3]   * dt;
-          pos[i*3+1] += vel[i*3+1] * dt;
-          pos[i*3+2] += vel[i*3+2] * dt;
+        const dt = Math.min(delta/1000, .05);
+        for (let i=0; i<this._N; i++) {
+          this._ages[i] += dt;
+          if (this._ages[i] >= this._lives[i]) { this._reset(i); this._ages[i]=0; continue; }
+          this._vel[i*3+1] -= .45*dt;
+          this._pos[i*3]   += this._vel[i*3]  *dt;
+          this._pos[i*3+1] += this._vel[i*3+1]*dt;
+          this._pos[i*3+2] += this._vel[i*3+2]*dt;
         }
         this._geo.attributes.position.needsUpdate = true;
       },
@@ -232,194 +285,167 @@
         <a-asset-item id="auto" src="macchina_test.glb"></a-asset-item>
       </a-assets>
 
-      <!-- ═══ LUCI ════════════════════════════════════════════════════════════
-           Niente ambient alto o directional forti — tutto brucia su pareti chiare.
-           Usiamo point lights localizzate che simulano le strip LED a soffitto.
-      ══════════════════════════════════════════════════════════════════════════ -->
-      <a-light type="ambient" color="#888888" intensity="0.3"></a-light>
-
-      <!-- Strip LED soffitto: 4 point lights lungo la navata centrale -->
-      <a-light type="point" position="-3 8.5 -2"  color="#fffaf0" intensity="1.4" distance="11"></a-light>
-      <a-light type="point" position=" 3 8.5 -2"  color="#fffaf0" intensity="1.4" distance="11"></a-light>
-      <a-light type="point" position="-3 8.5 -8"  color="#fffaf0" intensity="1.2" distance="10"></a-light>
-      <a-light type="point" position=" 3 8.5 -8"  color="#fffaf0" intensity="1.2" distance="10"></a-light>
-
-      <!-- Spot dedicato sulla macchina — punta verso il centro piattaforma -->
-      <!-- A-Frame spot con target: usiamo rotation calcolata manualmente -->
-      <!-- da pos=(0,7,-6) verso (0,0.5,-6): direzione Y=-6.5, Z=0 → pitch=-90° -->
-      <a-light type="spot" position="0 7 -6"
-        rotation="-90 0 0"
-        color="#ffffff" intensity="3.5" angle="28" penumbra="0.4">
-      </a-light>
-      <!-- Spot secondari laterali sulla macchina per illuminarla da più angoli -->
-      <a-light type="spot" position="-3 6 -6"
-        rotation="-75 20 0"
-        color="#fff0e0" intensity="1.5" angle="22" penumbra="0.5">
-      </a-light>
-      <a-light type="spot" position=" 3 6 -6"
-        rotation="-75 -20 0"
-        color="#e0f0ff" intensity="1.5" angle="22" penumbra="0.5">
-      </a-light>
-
-      <!-- Zona attesa — luce calda -->
-      <a-light type="point" position="-8 3.5  2"  color="#ffd580" intensity="1.0" distance="7"></a-light>
-      <a-light type="point" position="-8 3.5 -4"  color="#ffd580" intensity="0.9" distance="6"></a-light>
-
-      <!-- Zona reception -->
-      <a-light type="point" position="9 3.5 -2"   color="#fffaf0" intensity="1.0" distance="7"></a-light>
-
-      <!-- Accent piattaforma dal basso — viola -->
-      <a-light type="point" position="0 -0.3 -6"  color="#9933ff" intensity="0.9" distance="4"></a-light>
+      <!-- ═══ LUCI ════════════════════════════════════════════════════════════ -->
+      <a-light type="ambient"    color="#888888" intensity="0.3"></a-light>
+      <a-light type="point"      position="-3 8.5 -2"  color="#fffaf0" intensity="1.4" distance="11"></a-light>
+      <a-light type="point"      position=" 3 8.5 -2"  color="#fffaf0" intensity="1.4" distance="11"></a-light>
+      <a-light type="point"      position="-3 8.5 -8"  color="#fffaf0" intensity="1.2" distance="10"></a-light>
+      <a-light type="point"      position=" 3 8.5 -8"  color="#fffaf0" intensity="1.2" distance="10"></a-light>
+      <a-light type="spot"       position="0 7 -6"    rotation="-90 0 0"   color="#ffffff" intensity="3.5" angle="28" penumbra="0.4"></a-light>
+      <a-light type="spot"       position="-3 6 -6"   rotation="-75 20 0"  color="#fff0e0" intensity="1.5" angle="22" penumbra="0.5"></a-light>
+      <a-light type="spot"       position=" 3 6 -6"   rotation="-75 -20 0" color="#e0f0ff" intensity="1.5" angle="22" penumbra="0.5"></a-light>
+      <a-light type="point"      position="-8 3.5  2"  color="#ffd580" intensity="1.0" distance="7"></a-light>
+      <a-light type="point"      position="-8 3.5 -4"  color="#ffd580" intensity="0.9" distance="6"></a-light>
+      <a-light type="point"      position=" 9 3.5 -2"  color="#fffaf0" intensity="1.0" distance="7"></a-light>
+      <a-light type="point"      position=" 0 -0.3 -6" color="#9933ff" intensity="0.9" distance="4"></a-light>
 
       <!-- ═══ SHOWROOM ═════════════════════════════════════════════════════════ -->
 
-      <!-- Pavimento — marmo grigio-beige con griglia sottile generata via canvas -->
-      <a-plane id="floor" position="0 -0.51 -3" rotation="-90 0 0" width="28" height="22"
-        material="src: #floor-tex; repeat: 14 11; metalness:0.25; roughness:0.35"></a-plane>
+      <!-- Pavimento -->
+      <a-plane position="0 -0.51 -3" rotation="-90 0 0" width="28" height="22"
+        material="src:#floor-tex; repeat:14 11; metalness:0.25; roughness:0.35"></a-plane>
 
-      <!-- Pareti — antracite caldo, moderno -->
-      <a-plane position="0 4 -14"   rotation="0 0 0"    width="28" height="10" color="#2e2e2e" material="roughness:0.85"></a-plane>
-      <a-plane position="-12 4 -3"  rotation="0  90 0"  width="22" height="10" color="#2e2e2e" material="roughness:0.85"></a-plane>
-      <a-plane position=" 12 4 -3"  rotation="0 -90 0"  width="22" height="10" color="#2c2c2c" material="roughness:0.85"></a-plane>
-      <a-plane position="0 4 5"     rotation="0 180 0"  width="28" height="10" color="#2e2e2e" material="roughness:0.85"></a-plane>
-      <!-- Soffitto metallico acciaio scuro -->
-      <a-plane position="0 9 -3"    rotation="90 0 0"   width="28" height="22"
+      <!-- Pareti antracite -->
+      <a-plane position=" 0 4 -14" rotation="0 0 0"    width="28" height="10" color="#2e2e2e" material="roughness:0.85"></a-plane>
+      <a-plane position="-12 4 -3" rotation="0  90 0"  width="22" height="10" color="#2e2e2e" material="roughness:0.85"></a-plane>
+      <a-plane position=" 12 4 -3" rotation="0 -90 0"  width="22" height="10" color="#2c2c2c" material="roughness:0.85"></a-plane>
+      <a-plane position=" 0 4  5"  rotation="0 180 0"  width="28" height="10" color="#2e2e2e" material="roughness:0.85"></a-plane>
+
+      <!-- Soffitto metallico -->
+      <a-plane position="0 9 -3" rotation="90 0 0" width="28" height="22"
         color="#3a3a3a" material="metalness:0.85; roughness:0.25"></a-plane>
 
-      <!-- Vetrata frontale con montanti -->
+      <!-- Vetrata frontale -->
       <a-box position="-6  4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
       <a-box position=" 0  4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
       <a-box position=" 6  4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
       <a-box position="-12 4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
       <a-box position=" 12 4 -13.95" width="0.15" height="10" depth="0.1" color="#555555"></a-box>
-      <a-box position="0 2 -13.95"   width="28"   height="0.1" depth="0.1" color="#555555"></a-box>
-      <a-box position="0 6 -13.95"   width="28"   height="0.1" depth="0.1" color="#555555"></a-box>
-      <!-- Pannelli vetro (colore cielo, meno saturo) -->
+      <a-box position="0 2 -13.95" width="28" height="0.1" depth="0.1" color="#555555"></a-box>
+      <a-box position="0 6 -13.95" width="28" height="0.1" depth="0.1" color="#555555"></a-box>
       <a-plane position="-9 4 -13.9" width="5.7" height="7.8" material="color:#b8d4e8; opacity:0.22; transparent:true; side:double"></a-plane>
       <a-plane position="-3 4 -13.9" width="5.7" height="7.8" material="color:#b8d4e8; opacity:0.22; transparent:true; side:double"></a-plane>
       <a-plane position=" 3 4 -13.9" width="5.7" height="7.8" material="color:#b8d4e8; opacity:0.22; transparent:true; side:double"></a-plane>
       <a-plane position=" 9 4 -13.9" width="5.7" height="7.8" material="color:#b8d4e8; opacity:0.22; transparent:true; side:double"></a-plane>
 
-      <!-- Travi soffitto -->
+      <!-- Travi + LED strip soffitto -->
       <a-box position="-8 8.8 -3" width="0.3" height="0.4" depth="22" color="#2a2a2a"></a-box>
       <a-box position=" 8 8.8 -3" width="0.3" height="0.4" depth="22" color="#2a2a2a"></a-box>
-      <!-- Travetti centrali per gli spot -->
-      <a-box position="0 8.8 -6"  width="0.2" height="0.3" depth="6"  color="#2a2a2a"></a-box>
-      <!-- Strip LED soffitto (mesh visuale) — ora più sottili e distanziate -->
+      <a-box position=" 0 8.8 -6" width="0.2" height="0.3" depth="6"  color="#2a2a2a"></a-box>
       <a-box position="-3 8.95 -3" width="0.08" height="0.05" depth="18" color="#fffaf0" material="emissive:#fffaf0; emissiveIntensity:0.9"></a-box>
       <a-box position=" 3 8.95 -3" width="0.08" height="0.05" depth="18" color="#fffaf0" material="emissive:#fffaf0; emissiveIntensity:0.9"></a-box>
 
+      <!-- Faretti soffitto (geometry pura, no GLB) -->
+      <a-entity position=" 0 8.8 -6">
+        <a-cylinder height="0.30" radius="0.12" color="#222" material="metalness:0.9;roughness:0.1"></a-cylinder>
+        <a-cone height="0.20" radius-bottom="0.18" radius-top="0.08" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:0.8;shader:flat;side:double" position="0 -0.22 0"></a-cone>
+      </a-entity>
+      <a-entity position="-3 8.8 -6">
+        <a-cylinder height="0.28" radius="0.10" color="#222" material="metalness:0.9;roughness:0.1"></a-cylinder>
+        <a-cone height="0.18" radius-bottom="0.15" radius-top="0.07" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:0.7;shader:flat;side:double" position="0 -0.20 0"></a-cone>
+      </a-entity>
+      <a-entity position=" 3 8.8 -6">
+        <a-cylinder height="0.28" radius="0.10" color="#222" material="metalness:0.9;roughness:0.1"></a-cylinder>
+        <a-cone height="0.18" radius-bottom="0.15" radius-top="0.07" color="#ffeecc" material="emissive:#ffeecc;emissiveIntensity:0.7;shader:flat;side:double" position="0 -0.20 0"></a-cone>
+      </a-entity>
+
       <!-- Fascia viola brand -->
-      <a-box position="0 0.5 -13.92"  width="28"   height="0.1" depth="0.05" color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.4"></a-box>
-      <a-box position="0 0.5  4.92"   width="28"   height="0.1" depth="0.05" color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.3"></a-box>
+      <a-box position=" 0 0.5 -13.92" width="28"   height="0.1" depth="0.05" color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.4"></a-box>
+      <a-box position=" 0 0.5   4.92" width="28"   height="0.1" depth="0.05" color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.3"></a-box>
       <a-box position="-11.92 0.5 -3" width="0.05" height="0.1" depth="22"   color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.3"></a-box>
       <a-box position=" 11.92 0.5 -3" width="0.05" height="0.1" depth="22"   color="#7700cc" material="emissive:#7700cc; emissiveIntensity:0.3"></a-box>
 
-      <!-- Logo AVBO CORSE — parete frontale, centrato, grande -->
-      <a-plane id="logo-plane"
-        position="0 5.2 -13.8"
-        rotation="0 0 0"
-        width="16" height="9.3"
-        material="src: #logo-img; shader: flat; transparent: true; alphaTest: 0.15; side: double">
+      <!-- Logo AVBO CORSE — parete frontale -->
+      <a-plane position="0 5.2 -13.8" rotation="0 0 0" width="16" height="9.3"
+        material="src:#logo-img; shader:flat; transparent:true; alphaTest:0.15; side:double">
       </a-plane>
 
-      <!-- ═══ PIATTAFORMA ROTANTE ══════════════════════════════════════════════ -->
-      <a-entity position="0 -0.5 -6" rotate-y="speed: 0.25">
+      <!-- ═══ ZONA ATTESA ══════════════════════════════════════════════════════ -->
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/e78c10a3-58e6-400b-a576-c5db78c2d30f/model.glb)" position="-9 -0.51 -1"    rotation="0  90 0" scale="1.5 1.5 1.5"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/f47310a0-4d22-48a3-a2ce-62f67bcc998d/model.glb)" position="-9 -0.51 -4"    rotation="0  90 0" scale="1.5 1.5 1.5"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/68c4bcbd-0c5d-42ee-ab91-4cce6672fa18/model.glb)" position="-7 -0.51 -2"    rotation="0   0 0" scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/98dd45a1-0682-4d44-83d1-32fa2a4fca5b/model.glb)" position="-10.5 -0.51 0.5" rotation="0   0 0" scale="1.3 1.3 1.3"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position="-10.5 -0.51 -7"  rotation="0  45 0" scale="1.5 1.5 1.5"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb)" position="-10.5 -0.51  3"  rotation="0  20 0" scale="1.4 1.4 1.4"></a-entity>
+
+      <!-- ═══ ZONA RECEPTION ═══════════════════════════════════════════════════ -->
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/0716218b-3aae-48e6-8ddd-185cf7f7b7d7/model.glb)" position=" 9.5 -0.51 -3.5" rotation="0 180 0" scale="1.2 1.2 1.2"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/64699642-a4c2-4850-9c4b-558a328ed1bf/model.glb)" position=" 9.5 -0.51 -3.0" rotation="0 180 0" scale="1.0 1.0 1.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position="11.5 -0.51 -1"   rotation="0   0 0" scale="1.3 1.3 1.3"></a-entity>
+
+      <!-- ═══ PIANTE ANGOLI ════════════════════════════════════════════════════ -->
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position="-11.5 -0.51 -13" rotation="0  30 0" scale="2.0 2.0 2.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/6482596c-6423-415d-bfd5-e66bcc546642/model.glb)" position=" 11.5 -0.51 -13" rotation="0 -30 0" scale="2.0 2.0 2.0"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb)" position="-11.5 -0.51   4" rotation="0   0 0" scale="1.8 1.8 1.8"></a-entity>
+      <a-entity gltf-model="url(https://cdn.poly.pizza/m/b892ee12-370d-4dae-aa14-d377b89f9413/model.glb)" position=" 11.5 -0.51   4" rotation="0   0 0" scale="1.8 1.8 1.8"></a-entity>
+
+      <!-- ═══ PIATTAFORMA ROTANTE ══════════════════════════════════════════════
+           Gli hotspot sono FIGLI della piattaforma:
+           - Ruotano con la macchina quando in movimento
+           - Si mostrano solo quando si guarda la piattaforma
+           - La macchina si blocca e snappa all'angolo 0 (lato verso camera)
+
+           Posizioni hotspot in local space (la macchina è centrata sull'origine
+           della piattaforma, lunghezza ~5m lungo l'asse X):
+             H1 Cockpit:     ( 0.0,  1.2,  0.3)
+             H2 Propulsione: (-2.1,  0.6,  0.0)  — estremità posteriore
+             H3 Pneumatico:  ( 1.4,  0.15, 0.8)  — ruota anteriore
+             H4 Avantreno:   ( 2.3,  0.2,  0.0)  — muso
+           NB: se le posizioni non coincidono con la geometria reale,
+           comunicalo e verranno corrette.
+      ════════════════════════════════════════════════════════════════════════ -->
+      <a-entity id="platform"
+                position="0 -0.5 -6"
+                rotate-y="speed: 0.25"
+                car-platform
+                spark-particles="count:80; radius:2.6; color1:#cc44ff; color2:#aaaaff">
+
+        <!-- Disco -->
         <a-cylinder height="0.1" radius="2.6" color="#1a1a1a" material="metalness:0.9; roughness:0.1"></a-cylinder>
         <a-torus radius="2.6" radius-tubular="0.05" color="#8800ee"
           material="emissive:#8800ee; emissiveIntensity:1; opacity:0.95; transparent:true"
           position="0 0.05 0" rotation="90 0 0">
         </a-torus>
-        <a-entity
-          gltf-model="#auto"
-          rotation="-90 90 0"
-          scale="0.02222 0.02222 0.02222"
-          position="0 0.156 -2.444">
+
+        <!-- Macchina ~5m, centrata sull'origine -->
+        <a-entity gltf-model="#auto" rotation="-90 90 0"
+          scale="0.02222 0.02222 0.02222" position="0 0.156 -2.444">
         </a-entity>
-      </a-entity>
 
-      <!-- ═══ SPOT LIGHT 3D SUL SOFFITTO (geometry pura, niente GLB) ══════════ -->
-      <!-- Faretti: cilindro scuro + cono emissivo sotto -->
-      <a-entity position="0 8.8 -6">
-        <a-cylinder height="0.3" radius="0.12" color="#222222" material="metalness:0.9; roughness:0.1" position="0 0 0"></a-cylinder>
-        <a-cone height="0.2" radius-bottom="0.18" radius-top="0.08" color="#ffeecc" material="emissive:#ffeecc; emissiveIntensity:0.8; shader:flat; side:double" position="0 -0.22 0" rotation="0 0 0"></a-cone>
-      </a-entity>
-      <a-entity position="-3 8.8 -6">
-        <a-cylinder height="0.3" radius="0.10" color="#222222" material="metalness:0.9; roughness:0.1"></a-cylinder>
-        <a-cone height="0.18" radius-bottom="0.15" radius-top="0.07" color="#ffeecc" material="emissive:#ffeecc; emissiveIntensity:0.7; shader:flat; side:double" position="0 -0.2 0"></a-cone>
-      </a-entity>
-      <a-entity position="3 8.8 -6">
-        <a-cylinder height="0.3" radius="0.10" color="#222222" material="metalness:0.9; roughness:0.1"></a-cylinder>
-        <a-cone height="0.18" radius-bottom="0.15" radius-top="0.07" color="#ffeecc" material="emissive:#ffeecc; emissiveIntensity:0.7; shader:flat; side:double" position="0 -0.2 0"></a-cone>
-      </a-entity>
+        <!-- H1 — Cockpit (centro-alto) -->
+        <a-entity position="0 1.2 0.3"
+          hotspot="title:Cockpit; body:Abitacolo in fibra di carbonio.\nRoll hoop integrato.\nVisiera riscaldata anti-appannamento.; color:#cc44ff">
+        </a-entity>
 
-      <!-- ═══ PARTICELLE — Three.js nativo, niente librerie esterne ════════════ -->
-      <a-entity id="particles" position="0 -0.4 -6"
-        spark-particles="count: 220; radius: 2.6; color1: #cc44ff; color2: #ffffff">
-      </a-entity>
+        <!-- H2 — Propulsione (posteriore) -->
+        <a-entity position="-2.1 0.6 0"
+          hotspot="title:Propulsione; body:Sistema pneumatico ad aria compressa.\nCapsule inserite nel posteriore.\nSpinta istantanea senza motore elettrico.; color:#ff6600">
+        </a-entity>
 
-      <!-- ═══ HOTSPOT INTERATTIVI ══════════════════════════════════════════════
-           Posizionati nel world space (non ruotano con la macchina).
-           La macchina è centrata a world pos (0, -0.5, -6), lunga ~5m sull'asse Z.
-           Posizioni approssimate sui punti chiave della vettura F1.
-      ══════════════════════════════════════════════════════════════════════════ -->
+        <!-- H3 — Pneumatico anteriore -->
+        <a-entity position="1.4 0.15 0.8"
+          hotspot="title:Pneumatico; body:Gomme a bassa resistenza.\nDiametro 13 pollici.\nFormulazione per piste indoor.; color:#00ccff">
+        </a-entity>
 
-      <!-- H1 — Cockpit / abitacolo (centro-alto della macchina) -->
-      <a-entity
-        position="0 1.0 -6"
-        pulse-ring="color: #cc44ff"
-        hotspot="
-          title: Cockpit;
-          body: Abitacolo monoscocca in fibra di carbonio.\nRoll hoop integrato.\nVisiera riscaldata anti-appannamento.;
-          color: #cc44ff;
-          panelOffset: 0 0.6 0">
-      </a-entity>
+        <!-- H4 — Muso / Avantreno -->
+        <a-entity position="2.3 0.2 0"
+          hotspot="title:Avantreno; body:Profilo aerodinamico anteriore.\nMateriale: carbonio rinforzato.\nGeometria ottimizzata in CFD.; color:#00ff88">
+        </a-entity>
 
-      <!-- H2 — Sistema propulsivo / posteriore -->
-      <a-entity
-        position="0 0.5 -8.5"
-        pulse-ring="color: #ff6600"
-        hotspot="
-          title: Propulsione;
-          body: Sistema pneumatico ad aria compressa.\nCapsule inserite nel posteriore.\nSpinta istantanea senza motore elettrico.;
-          color: #ff6600;
-          panelOffset: 0 0.6 0">
-      </a-entity>
-
-      <!-- H3 — Ruota anteriore sinistra -->
-      <a-entity
-        position="-1.0 0.0 -4.0"
-        pulse-ring="color: #00ccff"
-        hotspot="
-          title: Pneumatico;
-          body: Pirelli P Zero 13\'\'\nComposizione: compound morbido.\nDiametro: 330mm.;
-          color: #00ccff;
-          panelOffset: 0 0.6 0">
-      </a-entity>
-
-      <!-- H4 — Alettone anteriore (anteriore della macchina) -->
-      <a-entity
-        position="0 0.2 -3.5"
-        pulse-ring="color: #00ff88"
-        hotspot="
-          title: Alettone Anteriore;
-          body: Carbonio ad alta resistenza.\nCarico aerodinamico: 400+ kg.\nAngolo regolabile in pit stop.;
-          color: #00ff88;
-          panelOffset: 0 0.6 0">
       </a-entity>
 
       <!-- ═══ CAMERA ══════════════════════════════════════════════════════════ -->
       <a-entity camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
         <a-cursor fuse="false"
-          raycaster="objects: .gaze-target, .hotspot-trigger; far: 18"
+          raycaster="objects: .gaze-target, .car-trigger, .hotspot-trigger; far: 18"
           geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.018"
           material="color: #cc44ff; shader: flat; opacity: 0.9">
         </a-cursor>
       </a-entity>
 
-      <!-- ═══ PANNELLI GAZE ════════════════════════════════════════════════════ -->
+      <!-- ═══ PANNELLI GAZE (4 attorno al viewer) ══════════════════════════════ -->
 
-      <!-- P1 — sinistra, VIOLA -->
+      <!-- P1 — sinistra-front -->
       <a-entity position="-2.5 1.6 -1.5" rotation="0 60 0">
         <a-text value="TITOLO 1" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18"></a-text>
         <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
@@ -434,7 +460,7 @@
         </a-entity>
       </a-entity>
 
-      <!-- P2 — destra, VIOLA CHIARO -->
+      <!-- P2 — destra-front -->
       <a-entity position="2.5 1.6 -1.5" rotation="0 -60 0">
         <a-text value="TITOLO 2" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18"></a-text>
         <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
@@ -449,7 +475,7 @@
         </a-entity>
       </a-entity>
 
-      <!-- P3 — dietro-sinistra, VIOLA -->
+      <!-- P3 — sinistra-back -->
       <a-entity position="-2.0 1.6 1.5" rotation="0 120 0">
         <a-text value="TITOLO 3" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18"></a-text>
         <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
@@ -464,7 +490,7 @@
         </a-entity>
       </a-entity>
 
-      <!-- P4 — dietro-destra, VIOLA -->
+      <!-- P4 — destra-back -->
       <a-entity position="2.0 1.6 1.5" rotation="0 -120 0">
         <a-text value="TITOLO 4" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18"></a-text>
         <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
@@ -479,43 +505,34 @@
         </a-entity>
       </a-entity>
 
-      <!-- Script texture pavimento + loghi senza sfondo nero -->
+      <!-- ═══ SCRIPT TEXTURE PAVIMENTO ════════════════════════════════════════ -->
       <script>
-        // ── Pavimento ────────────────────────────────────────────────────────
         (function() {
           const c = document.getElementById('floor-tex');
           const ctx = c.getContext('2d');
           const w = 256, h = 256;
-          ctx.fillStyle = '#b8b0a4';
-          ctx.fillRect(0, 0, w, h);
-          const grad = ctx.createLinearGradient(0, 0, w, h);
+          ctx.fillStyle = '#b8b0a4'; ctx.fillRect(0,0,w,h);
+          const grad = ctx.createLinearGradient(0,0,w,h);
           grad.addColorStop(0,   'rgba(180,172,162,0.6)');
           grad.addColorStop(0.5, 'rgba(160,152,144,0.4)');
           grad.addColorStop(1,   'rgba(175,167,157,0.6)');
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, 0, w, h);
-          ctx.strokeStyle = 'rgba(210,205,198,0.35)';
-          ctx.lineWidth = 0.8;
-          for (let i = 0; i < 18; i++) {
+          ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+          ctx.strokeStyle = 'rgba(210,205,198,0.35)'; ctx.lineWidth = 0.8;
+          for (let i=0; i<18; i++) {
             ctx.beginPath();
-            const x0 = Math.random()*w, y0 = Math.random()*h;
-            ctx.moveTo(x0, y0);
-            for (let j = 0; j < 6; j++) ctx.lineTo(x0+(Math.random()-.5)*80, y0+(Math.random()-.5)*80);
+            const x0=Math.random()*w, y0=Math.random()*h; ctx.moveTo(x0,y0);
+            for (let j=0;j<6;j++) ctx.lineTo(x0+(Math.random()-.5)*80, y0+(Math.random()-.5)*80);
             ctx.stroke();
           }
-          ctx.strokeStyle = 'rgba(100,95,88,0.12)'; ctx.lineWidth = 0.5;
-          for (let i = 0; i < 10; i++) {
-            ctx.beginPath();
-            ctx.moveTo(Math.random()*w, Math.random()*h);
-            ctx.lineTo(Math.random()*w, Math.random()*h);
-            ctx.stroke();
-          }
-          ctx.strokeStyle = 'rgba(80,75,68,0.4)'; ctx.lineWidth = 1.2;
-          for (let x = 0; x <= w; x += 64) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
-          for (let y = 0; y <= h; y += 64) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+          ctx.strokeStyle='rgba(100,95,88,0.12)'; ctx.lineWidth=0.5;
+          for (let i=0;i<10;i++){ctx.beginPath();ctx.moveTo(Math.random()*w,Math.random()*h);ctx.lineTo(Math.random()*w,Math.random()*h);ctx.stroke();}
+          ctx.strokeStyle='rgba(80,75,68,0.4)'; ctx.lineWidth=1.2;
+          for (let x=0;x<=w;x+=64){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+          for (let y=0;y<=h;y+=64){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
         })();
       </script>
 
+      <!-- ═══ SCRIPT PANNELLI GAZE ════════════════════════════════════════════ -->
       <script>
         window.addEventListener('load', () => {
           [['t1','b1'],['t2','b2'],['t3','b3'],['t4','b4']].forEach(([tid, bid]) => {
