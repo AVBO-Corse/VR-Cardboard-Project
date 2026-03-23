@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <title>Car Dealership VR</title>
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-particle-system-component@1.1.x/dist/aframe-particle-system-component.min.js"></script>
     <script>
 
     AFRAME.registerComponent('rotate-y', {
@@ -152,6 +151,71 @@
       }
     });
 
+    // ── Particelle Three.js native — niente dipendenze esterne ──────────────
+    AFRAME.registerComponent('spark-particles', {
+      schema: {
+        count:  { type: 'number', default: 220 },
+        radius: { type: 'number', default: 2.6 },
+        color1: { type: 'color',  default: '#cc44ff' },
+        color2: { type: 'color',  default: '#ffffff' }
+      },
+      init: function () {
+        const d = this.data;
+        const N = d.count;
+        const pos   = new Float32Array(N * 3);
+        const col   = new Float32Array(N * 3);
+        const vel   = new Float32Array(N * 3);
+        const ages  = new Float32Array(N);
+        const lives = new Float32Array(N);
+        const c1 = new THREE.Color(d.color1);
+        const c2 = new THREE.Color(d.color2);
+
+        const reset = (i) => {
+          const angle = Math.random() * Math.PI * 2;
+          const r = d.radius * (0.85 + Math.random() * 0.15);
+          pos[i*3]   = Math.cos(angle) * r;
+          pos[i*3+1] = (Math.random() - 0.5) * 0.1;
+          pos[i*3+2] = Math.sin(angle) * r;
+          vel[i*3]   = Math.cos(angle) * (Math.random() * 0.3);
+          vel[i*3+1] = 0.4 + Math.random() * 1.4;
+          vel[i*3+2] = Math.sin(angle) * (Math.random() * 0.3);
+          ages[i]  = Math.random() * 2.5;
+          lives[i] = 1.5 + Math.random() * 1.8;
+          const c = new THREE.Color().lerpColors(c1, c2, Math.random());
+          col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+        };
+        for (let i = 0; i < N; i++) reset(i);
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+        const mat = new THREE.PointsMaterial({
+          size: 0.07, vertexColors: true, transparent: true, opacity: 0.85,
+          blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+        });
+        this.points = new THREE.Points(geo, mat);
+        this.el.object3D.add(this.points);
+        this._pos = pos; this._vel = vel;
+        this._ages = ages; this._lives = lives;
+        this._N = N; this._reset = reset; this._geo = geo;
+      },
+      tick: function (time, delta) {
+        const dt = Math.min(delta / 1000, 0.05);
+        const pos = this._pos, vel = this._vel;
+        const ages = this._ages, lives = this._lives;
+        for (let i = 0; i < this._N; i++) {
+          ages[i] += dt;
+          if (ages[i] >= lives[i]) { this._reset(i); ages[i] = 0; continue; }
+          vel[i*3+1] -= 0.5 * dt;
+          pos[i*3]   += vel[i*3]   * dt;
+          pos[i*3+1] += vel[i*3+1] * dt;
+          pos[i*3+2] += vel[i*3+2] * dt;
+        }
+        this._geo.attributes.position.needsUpdate = true;
+      },
+      remove: function () { this.el.object3D.remove(this.points); }
+    });
+
     </script>
   </head>
   <body>
@@ -274,52 +338,24 @@
         </a-entity>
       </a-entity>
 
-      <!-- ═══ SPOT LIGHT 3D SUL SOFFITTO ══════════════════════════════════════ -->
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)" position="0 8.8 -6"   rotation="0 0 180"   scale="0.6 0.6 0.6"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)" position="-3 8.8 -6"  rotation="15 0 195"  scale="0.5 0.5 0.5"></a-entity>
-      <a-entity gltf-model="url(https://cdn.poly.pizza/m/eaQqgLn0oJ/model.glb)" position=" 3 8.8 -6"  rotation="15 0 165"  scale="0.5 0.5 0.5"></a-entity>
-
-      <!-- ═══ PARTICELLE ═══════════════════════════════════════════════════════
-           Scintille attorno alla piattaforma — emesse dal bordo del disco
-      ══════════════════════════════════════════════════════════════════════════ -->
-      <!-- Scintille viola principali -->
-      <a-entity
-        position="0 -0.4 -6"
-        particle-system="
-          preset:         default;
-          color:          #cc44ff, #8800ee;
-          particleCount:  180;
-          maxAge:         2.2;
-          size:           0.06, 0.02;
-          velocityValue:  0 1.2 0;
-          velocitySpread: 2.6 0.4 2.6;
-          positionSpread: 2.5 0.05 2.5;
-          accelerationValue: 0 -0.3 0;
-          opacity:        0.9;
-          blending:       2;
-          rotateSystem:   false;
-          texture:        https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/star2.png
-        ">
+      <!-- ═══ SPOT LIGHT 3D SUL SOFFITTO (geometry pura, niente GLB) ══════════ -->
+      <!-- Faretti: cilindro scuro + cono emissivo sotto -->
+      <a-entity position="0 8.8 -6">
+        <a-cylinder height="0.3" radius="0.12" color="#222222" material="metalness:0.9; roughness:0.1" position="0 0 0"></a-cylinder>
+        <a-cone height="0.2" radius-bottom="0.18" radius-top="0.08" color="#ffeecc" material="emissive:#ffeecc; emissiveIntensity:0.8; shader:flat; side:double" position="0 -0.22 0" rotation="0 0 0"></a-cone>
+      </a-entity>
+      <a-entity position="-3 8.8 -6">
+        <a-cylinder height="0.3" radius="0.10" color="#222222" material="metalness:0.9; roughness:0.1"></a-cylinder>
+        <a-cone height="0.18" radius-bottom="0.15" radius-top="0.07" color="#ffeecc" material="emissive:#ffeecc; emissiveIntensity:0.7; shader:flat; side:double" position="0 -0.2 0"></a-cone>
+      </a-entity>
+      <a-entity position="3 8.8 -6">
+        <a-cylinder height="0.3" radius="0.10" color="#222222" material="metalness:0.9; roughness:0.1"></a-cylinder>
+        <a-cone height="0.18" radius-bottom="0.15" radius-top="0.07" color="#ffeecc" material="emissive:#ffeecc; emissiveIntensity:0.7; shader:flat; side:double" position="0 -0.2 0"></a-cone>
       </a-entity>
 
-      <!-- Scintille bianche piccole più lente — effetto polvere -->
-      <a-entity
-        position="0 -0.45 -6"
-        particle-system="
-          preset:         default;
-          color:          #ffffff, #aaaaff;
-          particleCount:  90;
-          maxAge:         3.5;
-          size:           0.03, 0.01;
-          velocityValue:  0 0.4 0;
-          velocitySpread: 2.8 0.2 2.8;
-          positionSpread: 2.4 0.02 2.4;
-          accelerationValue: 0 -0.05 0;
-          opacity:        0.5;
-          blending:       2;
-          rotateSystem:   false;
-          texture:        https://cdn.rawgit.com/IdeaSpaceVR/aframe-particle-system-component/master/dist/images/star2.png
-        ">
+      <!-- ═══ PARTICELLE — Three.js nativo, niente librerie esterne ════════════ -->
+      <a-entity id="particles" position="0 -0.4 -6"
+        spark-particles="count: 220; radius: 2.6; color1: #cc44ff; color2: #ffffff">
       </a-entity>
 
       <!-- ═══ HOTSPOT INTERATTIVI ══════════════════════════════════════════════
