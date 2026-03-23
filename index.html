@@ -42,24 +42,45 @@
       }
     });
 
-    // ── Piattaforma: stop rotazione + mostra/nasconde hotspot al gaze ─────────
+    // ── Piattaforma: stop rotazione + mostra/nasconde hotspot per prossimità ──
+    // NON usa raycaster — controlla ogni tick se la camera guarda verso la piattaforma
     AFRAME.registerComponent('car-platform', {
       init: function () {
-        // Cilindro alto che copre tutta la macchina + hotspot (fino a Y~1.5)
-        const disc = document.createElement('a-cylinder');
-        disc.setAttribute('height',  '3.0');
-        disc.setAttribute('radius',  '2.8');
-        disc.setAttribute('class',   'car-trigger');
-        disc.setAttribute('position','0 1.0 0');
-        disc.setAttribute('material','opacity:0; transparent:true; shader:flat; side:double');
-        this.el.appendChild(disc);
-        this._active  = false;
+        this._active     = false;
         this._leaveTimer = null;
+        this._cam        = null;
+        document.querySelector('a-scene').addEventListener('loaded', () => {
+          this._cam = document.getElementById('cam');
+        });
+      },
+      tick: function () {
+        if (!this._cam) return;
 
-        disc.addEventListener('mouseenter', () => {
-          // Cancella eventuale timer di uscita in corso
+        // Posizione world della piattaforma
+        const platPos = new THREE.Vector3();
+        this.el.object3D.getWorldPosition(platPos);
+
+        // Posizione world della camera
+        const camPos = new THREE.Vector3();
+        this._cam.object3D.getWorldPosition(camPos);
+
+        // Direzione in cui guarda la camera
+        const camDir = new THREE.Vector3();
+        this._cam.object3D.getWorldDirection(camDir);
+
+        // Vettore camera → piattaforma
+        const toPlat = new THREE.Vector3().subVectors(platPos, camPos);
+        const dist   = toPlat.length();
+
+        // Normalizza per dot product
+        const toPlatN = toPlat.clone().normalize();
+        const dot = camDir.dot(toPlatN); // 1 = guarda dritto, 0 = perpendicolare
+
+        // Attiva se: distanza < 8m E camera punta verso piattaforma (angolo < ~50°)
+        const looking = dist < 8.0 && dot > 0.64;
+
+        if (looking && !this._active) {
           if (this._leaveTimer) { clearTimeout(this._leaveTimer); this._leaveTimer = null; }
-          if (this._active) return;
           this._active = true;
           const rot = this.el.components['rotate-y'];
           if (rot) rot.pauseSnap();
@@ -67,24 +88,21 @@
             this.el.querySelectorAll('[hotspot]').forEach(h => {
               if (h.components.hotspot) h.components.hotspot.setVisible(true);
             });
-          }, 420);
-        });
-
-        disc.addEventListener('mouseleave', () => {
-          // Delay: se il cursore rientra entro 150ms (es. va su un hotspot) non fa nulla
+          }, 450);
+        } else if (!looking && this._active) {
+          if (this._leaveTimer) return; // già in attesa
           this._leaveTimer = setTimeout(() => {
             this._leaveTimer = null;
+            // Ricontrolla — potrebbe essere rientrato
             if (!this._active) return;
             this._active = false;
             this.el.querySelectorAll('[hotspot]').forEach(h => {
               if (h.components.hotspot) h.components.hotspot.setVisible(false);
             });
-            setTimeout(() => {
-              const rot = this.el.components['rotate-y'];
-              if (rot) rot.resume();
-            }, 300);
-          }, 150);
-        });
+            const rot = this.el.components['rotate-y'];
+            if (rot) rot.resume();
+          }, 600); // 600ms di grazia prima di disattivare
+        }
       }
     });
 
@@ -446,7 +464,7 @@
       <!-- ═══ CAMERA ══════════════════════════════════════════════════════════ -->
       <a-entity id="cam" camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
         <a-cursor fuse="false"
-          raycaster="objects: .gaze-target, .car-trigger, .hotspot-trigger; far: 18"
+          raycaster="objects: .gaze-target, .hotspot-trigger; far: 18"
           geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.018"
           material="color: #cc44ff; shader: flat; opacity: 0.9">
         </a-cursor>
