@@ -309,6 +309,132 @@
       remove: function () { this.el.object3D.remove(this.points); }
     });
 
+    // ── Anchor hotspot automatico sul bounding box del modello ────────────────
+    AFRAME.registerComponent('hotspot-anchor', {
+      schema: {
+        target: { type: 'string', default: '#carModel' },
+        ux: { type: 'number', default: 0.5 }, // 0..1 su X bbox
+        uy: { type: 'number', default: 0.5 }, // 0..1 su Y bbox
+        uz: { type: 'number', default: 0.5 }, // 0..1 su Z bbox
+        ox: { type: 'number', default: 0.0 }, // offset locale fine tuning
+        oy: { type: 'number', default: 0.0 },
+        oz: { type: 'number', default: 0.0 }
+      },
+      init: function () {
+        this._acc = 0;
+        this._placed = false;
+        this._place = this.place.bind(this);
+        this.el.sceneEl.addEventListener('loaded', this._place);
+        this.el.sceneEl.addEventListener('model-loaded', this._place);
+      },
+      update: function () {
+        // se cambiano ux/uy/uz/offset, riposiziona
+        this._placed = false;
+        this.place();
+      },
+      tick: function (time, delta) {
+        if (this._placed) return;
+        this._acc += delta;
+        if (this._acc < 200) return;
+        this._acc = 0;
+        this.place();
+      },
+      place: function () {
+        const parent = this.el.parentEl;
+        if (!parent) return;
+
+        const modelEl = parent.querySelector(this.data.target);
+        if (!modelEl || !modelEl.getObject3D('mesh')) return;
+
+        const box = new THREE.Box3().setFromObject(modelEl.object3D);
+        if (box.isEmpty()) return;
+
+        const wp = new THREE.Vector3(
+          THREE.MathUtils.lerp(box.min.x, box.max.x, this.data.ux),
+          THREE.MathUtils.lerp(box.min.y, box.max.y, this.data.uy),
+          THREE.MathUtils.lerp(box.min.z, box.max.z, this.data.uz)
+        );
+
+        const lp = parent.object3D.worldToLocal(wp.clone());
+        lp.x += this.data.ox; lp.y += this.data.oy; lp.z += this.data.oz;
+
+        this.el.object3D.position.copy(lp);
+        this._placed = true;
+      }
+    });
+
+    // ── Hotspot tuner (tastiera) ───────────────────────────────────────────────
+    // 1/2/3 seleziona hotspot; frecce = ux/uz; W/S=uy; Q/E=oy; SHIFT = step grande
+    AFRAME.registerComponent('hotspot-tuner', {
+      schema: { step: { type: 'number', default: 0.01 }, fast: { type: 'number', default: 0.05 } },
+      init: function () {
+        this.list = [
+          document.getElementById('hs-cockpit'),
+          document.getElementById('hs-prop'),
+          document.getElementById('hs-tyre')
+        ].filter(Boolean);
+
+        this.i = 0;
+        const logHelp = () => {
+          console.log('[hotspot-tuner] 1/2/3 select | arrows=ux/uz | W/S=uy | Q/E=oy | SHIFT=fast');
+          this._log();
+        };
+        setTimeout(logHelp, 400);
+
+        this._onKey = (e) => {
+          if (!this.list.length) return;
+          const fast = e.shiftKey ? this.data.fast : this.data.step;
+
+          if (e.key === '1') this.i = 0;
+          if (e.key === '2') this.i = 1;
+          if (e.key === '3') this.i = 2;
+
+          const el = this.list[this.i];
+          if (!el) return;
+
+          const comp = el.components['hotspot-anchor'];
+          if (!comp) return;
+
+          let { ux, uy, uz, ox, oy, oz } = comp.data;
+          let changed = true;
+
+          switch (e.key) {
+            case 'ArrowLeft':  ux -= fast; break;
+            case 'ArrowRight': ux += fast; break;
+            case 'ArrowUp':    uz -= fast; break;
+            case 'ArrowDown':  uz += fast; break;
+            case 'w': case 'W': uy += fast; break;
+            case 's': case 'S': uy -= fast; break;
+            case 'q': case 'Q': oy -= fast; break;
+            case 'e': case 'E': oy += fast; break;
+            default: changed = false;
+          }
+          if (!changed) return;
+
+          // clamp 0..1 per ux/uy/uz
+          ux = Math.min(1, Math.max(0, ux));
+          uy = Math.min(1, Math.max(0, uy));
+          uz = Math.min(1, Math.max(0, uz));
+
+          el.setAttribute('hotspot-anchor', { ux, uy, uz, ox, oy, oz });
+          comp._placed = false;
+          comp.place();
+          this._log();
+        };
+
+        window.addEventListener('keydown', this._onKey);
+      },
+      _log: function () {
+        const el = this.list[this.i];
+        if (!el || !el.components['hotspot-anchor']) return;
+        const d = el.components['hotspot-anchor'].data;
+        console.log(`[hotspot-tuner] selected=${el.id} ux=${d.ux.toFixed(3)} uy=${d.uy.toFixed(3)} uz=${d.uz.toFixed(3)} oy=${d.oy.toFixed(3)}`);
+      },
+      remove: function () {
+        window.removeEventListener('keydown', this._onKey);
+      }
+    });
+
     </script>
   </head>
   <body>
@@ -316,6 +442,7 @@
       background="color: #282828"
       vr-mode-ui="enabled: true"
       renderer="antialias: true; colorManagement: true"
+      hotspot-tuner
     >
 
       <!-- ═══ ASSETS ══════════════════════════════════════════════════════════ -->
@@ -324,6 +451,7 @@
         <canvas id="logo-canvas" width="1624" height="1183"></canvas>
         <img id="logo-img" src="logo.png" crossorigin="anonymous" style="display:none">
         <a-asset-item id="auto" src="macchina_test.glb"></a-asset-item>
+        <canvas id="bokeh-tex" width="128" height="128"></canvas>
       </a-assets>
 
       <!-- ═══ LUCI (ridotte per performance) ═════════════════════════════════ -->
@@ -493,24 +621,66 @@
       <a-box position="0 7.5  -13.95" width="28" height="0.10" depth="0.10" color="#777777" material="metalness:0.9;roughness:0.1"></a-box>
       <a-box position="0 9.0  -13.95" width="28" height="0.14" depth="0.14" color="#777777" material="metalness:0.9;roughness:0.1"></a-box>
 
-      <!-- Pannelli vetro tintato (grigio-blu, semitrasparente) -->
-      <a-plane position="-10 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
-      <a-plane position=" -6 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
-      <a-plane position=" -2 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
-      <a-plane position="  2 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
-      <a-plane position="  6 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
-      <a-plane position=" 10 4.5 -13.9" width="3.76" height="8.9" material="color:#8fb3cc; opacity:0.18; transparent:true; side:double"></a-plane>
+      <!-- Pannelli vetro tintato (grigio-blu, semitrasparente) — MANTENUTI -->
+      <a-plane position="-10 4.5 -13.9" width="3.76" height="8.9" material="color:#cfe8ff; opacity:0.06; transparent:true; side:double; depthWrite:false; roughness:0.05; metalness:0.0">
+      </a-plane>
+      <a-plane position=" -6 4.5 -13.9" width="3.76" height="8.9" material="color:#cfe8ff; opacity:0.06; transparent:true; side:double; depthWrite:false; roughness:0.05; metalness:0.0">
+      </a-plane>
+      <a-plane position=" -2 4.5 -13.9" width="3.76" height="8.9" material="color:#cfe8ff; opacity:0.06; transparent:true; side:double; depthWrite:false; roughness:0.05; metalness:0.0">
+      </a-plane>
+      <a-plane position="  2 4.5 -13.9" width="3.76" height="8.9" material="color:#cfe8ff; opacity:0.06; transparent:true; side:double; depthWrite:false; roughness:0.05; metalness:0.0">
+      </a-plane>
+      <a-plane position="  6 4.5 -13.9" width="3.76" height="8.9" material="color:#cfe8ff; opacity:0.06; transparent:true; side:double; depthWrite:false; roughness:0.05; metalness:0.0">
+      </a-plane>
+      <a-plane position=" 10 4.5 -13.9" width="3.76" height="8.9" material="color:#cfe8ff; opacity:0.06; transparent:true; side:double; depthWrite:false; roughness:0.05; metalness:0.0">
+      </a-plane>
 
-      <!-- Riflesso/highlight vetro (striscia chiara in alto su ogni pannello) -->
-      <a-plane position="-10 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
-      <a-plane position=" -6 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
-      <a-plane position=" -2 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
-      <a-plane position="  2 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
-      <a-plane position="  6 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
-      <a-plane position=" 10 7.8 -13.88" width="3.5" height="1.5" material="color:#d0e8f5; opacity:0.08; transparent:true; side:double"></a-plane>
+      <!-- Riflesso/highlight vetro — MANTENUTO -->
+      <a-plane position="-10 7.8 -13.88" width="3.5" height="1.5" material="color:#e6f7ff; opacity:0.02; transparent:true; side:double; depthWrite:false">
+      </a-plane>
+      <a-plane position=" -6 7.8 -13.88" width="3.5" height="1.5" material="color:#e6f7ff; opacity:0.02; transparent:true; side:double; depthWrite:false">
+      </a-plane>
+      <a-plane position=" -2 7.8 -13.88" width="3.5" height="1.5" material="color:#e6f7ff; opacity:0.02; transparent:true; side:double; depthWrite:false">
+      </a-plane>
+      <a-plane position="  2 7.8 -13.88" width="3.5" height="1.5" material="color:#e6f7ff; opacity:0.02; transparent:true; side:double; depthWrite:false">
+      </a-plane>
+      <a-plane position="  6 7.8 -13.88" width="3.5" height="1.5" material="color:#e6f7ff; opacity:0.02; transparent:true; side:double; depthWrite:false">
+      </a-plane>
+      <a-plane position=" 10 7.8 -13.88" width="3.5" height="1.5" material="color:#e6f7ff; opacity:0.02; transparent:true; side:double; depthWrite:false">
+      </a-plane>
 
       <!-- Soglia/pavimento rialzato vetrata -->
       <a-box position="0 -0.4 -13.9" width="28" height="0.22" depth="0.3" color="#333333" material="metalness:0.7;roughness:0.2"></a-box>
+
+      <!-- ═══ LUCI BOKEH (Ottimizzate - ZERO LAG) ═════════════════════════════
+           Uso di shader:flat per renderle luminose come neon senza usare
+           <a-light> che facevano laggare / sparire la scena.
+      ──────────────────────────────────────────────────────────────────────── -->
+      <a-plane position="-9 6.5 -13.3" width="6.0" height="6.0"
+        material="src:#bokeh-tex; color:#ffdd99; opacity:0.30; transparent:true; blending:additive; depthWrite:false; shader:flat">
+      </a-plane>
+      <a-plane position=" 3 6.8 -13.4" width="6.6" height="6.6"
+        material="src:#bokeh-tex; color:#ffe6b3; opacity:0.28; transparent:true; blending:additive; depthWrite:false; shader:flat">
+      </a-plane>
+      <a-plane position="-2 3.5 -13.3" width="5.4" height="5.4"
+        material="src:#bokeh-tex; color:#99ccff; opacity:0.26; transparent:true; blending:additive; depthWrite:false; shader:flat">
+      </a-plane>
+      <a-plane position=" 9 7.0 -13.5" width="7.0" height="7.0"
+        material="src:#bokeh-tex; color:#ffbb99; opacity:0.26; transparent:true; blending:additive; depthWrite:false; shader:flat">
+      </a-plane>
+
+      <a-plane position="-10 1.2 -13.2" width="5.0" height="5.0"
+        material="src:#bokeh-tex; color:#ff99ff; opacity:0.24; transparent:true; blending:additive; depthWrite:false; shader:flat">
+      </a-plane>
+      <a-plane position=" 2 1.5 -13.3" width="5.2" height="5.2"
+        material="src:#bokeh-tex; color:#ffeeaa; opacity:0.24; transparent:true; blending:additive; depthWrite:false; shader:flat">
+      </a-plane>
+      <a-plane position="-5 0.8 -13.2" width="4.8" height="4.8"
+        material="src:#bokeh-tex; color:#88ffff; opacity:0.22; transparent:true; blending:additive; depthWrite:false; shader:flat">
+      </a-plane>
+      <a-plane position=" 8 1.0 -13.4" width="5.4" height="5.4"
+        material="src:#bokeh-tex; color:#ffddff; opacity:0.23; transparent:true; blending:additive; depthWrite:false; shader:flat">
+      </a-plane>
 
       <!-- Fascia viola brand (mantenuta, più sottile) -->
       <a-box position=" 0 0.9  4.88" width="28.1" height="0.06" depth="0.04" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
@@ -554,7 +724,7 @@
         </a-torus>
 
         <!-- Macchina ~5m, centrata sull'origine -->
-        <a-entity gltf-model="#auto" rotation="-90 90 0"
+        <a-entity id="carModel" gltf-model="#auto" rotation="-90 90 0"
           scale="0.02222 0.02222 0.02222" position="0 0.156 -2.444">
         </a-entity>
 
@@ -582,6 +752,51 @@
           hotspot="title:Pneumatico; body:Gomme a bassa resistenza.\nDiametro 13 pollici.\nFormulazione per piste indoor.; color:#00ccff">
         </a-entity>
 
+      </a-entity>
+
+      <!-- ═══ VETTURA ANNO PRECEDENTE (Piedistallo a destra, più arretrato) ════ -->
+      <a-entity id="old-car-display" position="6.0 0 1.5" rotation="0 -120 0">
+        <!-- Struttura piedistallo -->
+        <a-box position="0 0.20 0" width="1.8" height="0.4" depth="6.0" color="#1a1a1a" material="metalness:0.8; roughness:0.2"></a-box>
+        <!-- Profilo luminoso superiore -->
+        <a-box position="0 0.40 0" width="1.75" height="0.03" depth="5.95" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.6"></a-box>
+
+        <!-- Modello auto 2023 
+             Regolata la Y a 0.51 (da verificare se poggia giusto) 
+             Ruotata affinché il fronte segua l'asse longitudinale del piedistallo 
+        -->
+        <a-entity id="oldCarModel" gltf-model="#auto" rotation="-90 90 0" scale="0.02222 0.02222 0.02222" position="0 0.51 -2.44"></a-entity>
+
+        <!-- Targhetta descrittiva inclinata sul fronte del piedistallo -->
+        <a-entity position="0 0.45 3.1" rotation="-30 0 0">
+          <a-plane width="1.2" height="0.5" color="#0a001a" material="metalness:0.5; roughness:0.5"></a-plane>
+          <a-box position="0 0 -0.02" width="1.24" height="0.54" depth="0.03" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.5"></a-box>
+          
+          <a-text value="AVBO CORSE 2023" align="center" position="0 0.12 0.01" width="2.4" font="exo2bold" color="#ffffff" letter-spacing="1"></a-text>
+          <a-box position="0 0 0.005" width="0.8" height="0.005" depth="0.005" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.8"></a-box>
+          <a-text value="Modello Vettura Anno Precedente" align="center" position="0 -0.12 0.01" width="1.6" font="exo2semibold" color="#ccaaff"></a-text>
+        </a-entity>
+      </a-entity>
+
+      <!-- ═══ VETTURA STORICA (Piedistallo a sinistra, speculare) ══════════════ -->
+      <a-entity id="older-car-display" position="-6.0 0 1.5" rotation="0 120 0">
+        <!-- Struttura piedistallo -->
+        <a-box position="0 0.20 0" width="1.8" height="0.4" depth="6.0" color="#1a1a1a" material="metalness:0.8; roughness:0.2"></a-box>
+        <!-- Profilo luminoso superiore -->
+        <a-box position="0 0.40 0" width="1.75" height="0.03" depth="5.95" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.6"></a-box>
+
+        <!-- Modello auto 2022 (placeholder) -->
+        <a-entity id="olderCarModel" gltf-model="#auto" rotation="-90 90 0" scale="0.02222 0.02222 0.02222" position="0 0.51 -2.44"></a-entity>
+
+        <!-- Targhetta descrittiva inclinata sul fronte del piedistallo -->
+        <a-entity position="0 0.45 3.1" rotation="-30 0 0">
+          <a-plane width="1.2" height="0.5" color="#0a001a" material="metalness:0.5; roughness:0.5"></a-plane>
+          <a-box position="0 0 -0.02" width="1.24" height="0.54" depth="0.03" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.5"></a-box>
+          
+          <a-text value="AVBO CORSE 2022" align="center" position="0 0.12 0.01" width="2.4" font="exo2bold" color="#ffffff" letter-spacing="1"></a-text>
+          <a-box position="0 0 0.005" width="0.8" height="0.005" depth="0.005" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.8"></a-box>
+          <a-text value="Modello Storico del Team" align="center" position="0 -0.12 0.01" width="1.6" font="exo2semibold" color="#ccaaff"></a-text>
+        </a-entity>
       </a-entity>
 
       <!-- ═══ CAMERA ══════════════════════════════════════════════════════════ -->
@@ -715,6 +930,23 @@
 
           if (img.complete && img.naturalWidth > 0) process();
           else img.addEventListener('load', process);
+        })();
+      </script>
+
+      <!-- ═══ SCRIPT BOKEH CANVAS ═════════════════════════════════════════════ -->
+      <script>
+        (function() {
+          const c = document.getElementById('bokeh-tex');
+          const ctx = c.getContext('2d');
+          const w = c.width, h = c.height;
+          ctx.clearRect(0, 0, w, h);
+          const g = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w/2);
+          g.addColorStop(0.0, 'rgba(255,255,255,0.46)');
+          g.addColorStop(0.35, 'rgba(255,255,255,0.22)');
+          g.addColorStop(0.7, 'rgba(255,255,255,0.08)');
+          g.addColorStop(1.0, 'rgba(255,255,255,0.0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, w, h);
         })();
       </script>
 
