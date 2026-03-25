@@ -321,7 +321,8 @@
       <!-- ═══ ASSETS ══════════════════════════════════════════════════════════ -->
       <a-assets timeout="10000">
         <canvas id="floor-tex" width="256" height="256"></canvas>
-        <img id="logo-img" src="logo.png" crossorigin="anonymous">
+        <canvas id="logo-canvas" width="1624" height="1183"></canvas>
+        <img id="logo-img" src="logo.png" crossorigin="anonymous" style="display:none">
         <a-asset-item id="auto" src="macchina_test.glb"></a-asset-item>
       </a-assets>
 
@@ -518,8 +519,8 @@
       <a-box position=" 11.88 0.9 -3" width="0.04" height="0.06" depth="22.1" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.5"></a-box>
 
       <!-- Logo AVBO CORSE — parete frontale -->
-      <a-plane position="0 5.2 -13.8" rotation="0 0 0" width="16" height="9.3"
-        material="src:#logo-img; shader:flat; transparent:true; alphaTest:0.08; side:double">
+      <a-plane id="logo-plane" position="0 5.2 -13.8" rotation="0 0 0" width="16" height="9.3"
+        material="src:#logo-canvas; shader:flat; transparent:true; alphaTest:0.05; side:double">
       </a-plane>
 
       <!-- zona attesa e reception rimosse temporaneamente -->
@@ -678,6 +679,42 @@
           ctx.strokeStyle='rgba(80,75,68,0.4)'; ctx.lineWidth=1.2;
           for (let x=0;x<=w;x+=64){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
           for (let y=0;y<=h;y+=64){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+        })();
+      </script>
+
+      <!-- ═══ SCRIPT LOGO CANVAS ══════════════════════════════════════════════ -->
+      <script>
+        (function() {
+          const img = document.getElementById('logo-img');
+          const cv  = document.getElementById('logo-canvas');
+
+          function process() {
+            cv.width  = img.naturalWidth  || 1624;
+            cv.height = img.naturalHeight || 1183;
+            const ctx = cv.getContext('2d');
+            ctx.clearRect(0, 0, cv.width, cv.height);
+            ctx.drawImage(img, 0, 0, cv.width, cv.height);
+            const data = ctx.getImageData(0, 0, cv.width, cv.height);
+            const d = data.data;
+            for (let i = 0; i < d.length; i += 4) {
+              if (d[i] < 40 && d[i+1] < 40 && d[i+2] < 40) d[i+3] = 0;
+            }
+            ctx.putImageData(data, 0, 0);
+            // Forza aggiornamento texture Three.js
+            const tryRefresh = () => {
+              const el = document.getElementById('logo-plane');
+              if (el && el.components && el.components.material) {
+                const mat = el.components.material.material;
+                if (mat && mat.map) { mat.map.needsUpdate = true; mat.needsUpdate = true; }
+              }
+            };
+            const scene = document.querySelector('a-scene');
+            if (scene && scene.hasLoaded) tryRefresh();
+            else if (scene) scene.addEventListener('loaded', () => setTimeout(tryRefresh, 100));
+          }
+
+          if (img.complete && img.naturalWidth > 0) process();
+          else img.addEventListener('load', process);
         })();
       </script>
 
