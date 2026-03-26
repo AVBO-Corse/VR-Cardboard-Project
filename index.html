@@ -435,6 +435,36 @@
       }
     });
 
+    // ── Centra il GLB sul parent usando il bbox reale (ignora pivot errato) ────
+    AFRAME.registerComponent('center-on-platform', {
+      schema: { baseY: { type: 'number', default: 0.11 } }, // quota appoggio sopra il disco
+      init: function () {
+        this._center = this.center.bind(this);
+        this.el.addEventListener('model-loaded', this._center);
+        this.el.sceneEl.addEventListener('loaded', this._center);
+        setTimeout(this._center, 300);
+        setTimeout(this._center, 900);
+      },
+      center: function () {
+        if (!this.el.getObject3D('mesh') || !this.el.parentEl) return;
+
+        const parentObj = this.el.parentEl.object3D;
+        const box = new THREE.Box3().setFromObject(this.el.object3D);
+        if (box.isEmpty()) return;
+
+        const centerW = box.getCenter(new THREE.Vector3());
+        const bottomW = new THREE.Vector3(centerW.x, box.min.y, centerW.z);
+
+        const centerL = parentObj.worldToLocal(centerW.clone());
+        const bottomL = parentObj.worldToLocal(bottomW.clone());
+
+        const p = this.el.object3D.position;
+        p.x -= centerL.x;                // centra su X
+        p.z -= centerL.z;                // centra su Z
+        p.y += (this.data.baseY - bottomL.y); // appoggia in Y
+      }
+    });
+
     </script>
   </head>
   <body>
@@ -450,6 +480,7 @@
         <canvas id="floor-tex" width="256" height="256"></canvas>
         <canvas id="logo-canvas" width="1624" height="1183"></canvas>
         <img id="logo-img" src="logo.png" crossorigin="anonymous" style="display:none">
+        <img id="stem-logo" src="stem_racing.png" crossorigin="anonymous">
         <a-asset-item id="auto" src="macchina_test.glb"></a-asset-item>
         <canvas id="bokeh-tex" width="128" height="128"></canvas>
       </a-assets>
@@ -538,10 +569,14 @@
       <a-plane position="-11.85 4.1 -8.5" rotation="0  90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
       <a-plane position="-11.85 4.1 -3"   rotation="0  90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
       <a-plane position="-11.85 4.1  2.5" rotation="0  90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
+      
       <!-- Destra: 3 riquadri -->
       <a-plane position=" 11.85 4.1 -8.5" rotation="0 -90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
       <a-plane position=" 11.85 4.1 -3"   rotation="0 -90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
       <a-plane position=" 11.85 4.1  2.5" rotation="0 -90 0" width="4.5" height="5.2" color="#2f2f2f" material="roughness:0.7"></a-plane>
+
+      <!-- Logo parete posteriore (centrale, grande) -->
+      <a-image src="#stem-logo" position="0 4.1 4.84" rotation="0 180 0" width="8.0" height="4.4" transparent="true"></a-image>
 
       <!-- ── SOFFITTO A CASSETTONI ──────────────────────────────────────────
            Piano soffitto base + nervature che creano cassettoni
@@ -714,18 +749,22 @@
                 position="0 -0.5 -6"
                 rotate-y="speed: 0.25"
                 car-platform
-                spark-particles="count:80; radius:2.6; color1:#cc44ff; color2:#aaaaff">
+                spark-particles="count:80; radius:3.8; color1:#cc44ff; color2:#aaaaff">
 
         <!-- Disco -->
-        <a-cylinder height="0.1" radius="2.6" color="#1a1a1a" material="metalness:0.9; roughness:0.1"></a-cylinder>
-        <a-torus radius="2.6" radius-tubular="0.05" color="#8800ee"
+        <a-cylinder height="0.1" radius="3.8" color="#1a1a1a" material="metalness:0.9; roughness:0.1"></a-cylinder>
+        <a-torus radius="3.8" radius-tubular="0.05" color="#8800ee"
           material="emissive:#8800ee; emissiveIntensity:1; opacity:0.95; transparent:true"
           position="0 0.05 0" rotation="90 0 0">
         </a-torus>
 
         <!-- Macchina ~5m, centrata sull'origine -->
-        <a-entity id="carModel" gltf-model="#auto" rotation="-90 90 0"
-          scale="0.02222 0.02222 0.02222" position="0 0.156 -2.444">
+        <a-entity id="carModel"
+          gltf-model="#auto"
+          center-on-platform="baseY:0.11"
+          rotation="-90 90 0"
+          scale="0.032 0.032 0.032"
+          position="0 0 0">
         </a-entity>
 
         <!--
