@@ -465,6 +465,118 @@
       }
     });
 
+    // ── Teleport Pad Gaze Component (Olografico e Fluido) ─────────────────────
+    AFRAME.registerComponent('teleport-pad', {
+      schema: { target: { type: 'vec3' } },
+      init: function () {
+        this.hovering = false;
+        this.timer = 0;
+        this.ring = this.el.querySelector('.tele-ring');
+        this.hit = this.el.querySelector('.tele-hit');
+        
+        // Animazione pulsante sull'anello esterno (neon)
+        this.neon = this.el.querySelector('.tele-neon');
+        this.baseIntensity = 0.8;
+        this.timeOffset = Math.random() * 1000;
+
+        const startHover = () => { this.hovering = true; };
+        const endHover = () => { 
+          this.hovering = false; 
+          this.timer = 0; 
+          if (this.ring) this.ring.setAttribute('geometry', 'thetaLength', 0); 
+        };
+
+        if (this.hit) {
+          this.hit.addEventListener('mouseenter', startHover);
+          this.hit.addEventListener('mouseleave', endHover);
+          // Se per qualche motivo clicca prima che finisca l'animazione visiva
+          this.hit.addEventListener('click', () => { this.timer = 1000; });
+        }
+      },
+      tick: function (time, delta) {
+        // Effetto pulsazione idle
+        if (this.neon) {
+          const intensity = this.baseIntensity + Math.sin((time + this.timeOffset) / 200) * 0.3;
+          this.neon.setAttribute('material', 'emissiveIntensity', intensity);
+        }
+
+        if (!this.hovering) return;
+        this.timer += delta;
+        if (this.ring) this.ring.setAttribute('geometry', 'thetaLength', Math.min((this.timer / 1000) * 360, 360));
+        
+        if (this.timer >= 1000) {
+          this.hovering = false;
+          this.timer = 0;
+          if (this.ring) this.ring.setAttribute('geometry', 'thetaLength', 0);
+          
+          // Spostamento fluido del RIG
+          const t = this.data.target;
+          document.getElementById('rig').setAttribute('animation', `property: position; to: ${t.x} ${t.y} ${t.z}; dur: 900; easing: easeInOutCubic`);
+        }
+      }
+    });
+
+    // ── Etichetta Fluttuante per i Pad ────────────────────────────────────────
+    AFRAME.registerComponent('pad-label', {
+      init: function () {
+        this._cam = null;
+        this.baseY = this.el.object3D.position.y;
+        this.wpCam = new THREE.Vector3();
+        this.wpMe = new THREE.Vector3();
+        this.el.sceneEl.addEventListener('loaded', () => {
+          this._cam = document.getElementById('cam');
+        });
+      },
+      tick: function (time) {
+        if (!this._cam) return;
+        
+        this._cam.object3D.getWorldPosition(this.wpCam);
+        this.el.object3D.getWorldPosition(this.wpMe);
+
+        // Calcola distanza (ignorando l'altezza Y per il calcolo)
+        const dist = Math.hypot(this.wpCam.x - this.wpMe.x, this.wpCam.z - this.wpMe.z);
+
+        // Se sei vicino (sul pad), nascondi. Altrimenti mostra.
+        this.el.object3D.visible = dist > 1.8;
+
+        if (this.el.object3D.visible) {
+          // Bobbing (fluttuazione su e giù)
+          this.el.object3D.position.y = this.baseY + Math.sin(time / 400) * 0.08;
+          
+          // Guarda sempre la telecamera (assegnando la stessa Y per evitare l'inclinazione verticale)
+          this.wpCam.y = this.el.object3D.position.y;
+          this.el.object3D.lookAt(this.wpCam);
+        }
+      }
+    });
+
+    // ── Nasconde gruppi di elementi se lontani ────────────────────────────────
+    AFRAME.registerComponent('hide-when-far', {
+      schema: { maxDist: { type: 'number', default: 4.5 } },
+      init: function () {
+        this._cam = null;
+        this.wpCam = new THREE.Vector3();
+        this.wpMe = new THREE.Vector3();
+        this.el.sceneEl.addEventListener('loaded', () => {
+          this._cam = document.getElementById('cam');
+        });
+      },
+      tick: function () {
+        if (!this._cam) return;
+        this._cam.object3D.getWorldPosition(this.wpCam);
+        this.el.object3D.getWorldPosition(this.wpMe);
+        
+        const dist = Math.hypot(this.wpCam.x - this.wpMe.x, this.wpCam.z - this.wpMe.z);
+        const inRange = dist <= this.data.maxDist;
+        
+        if (this.el.object3D.visible !== inRange) {
+          this.el.object3D.visible = inRange;
+          // Se la scala viene portata a 0 disabilita automaticamente il target del raycaster
+          this.el.object3D.scale.setScalar(inRange ? 1 : 0);
+        }
+      }
+    });
+
     </script>
   </head>
   <body>
@@ -838,75 +950,221 @@
         </a-entity>
       </a-entity>
 
+      <!-- ═══ TELEPORT PADS (Pedane Olografiche per muoversi nel VR) ═══════════ -->
+      
+      <!-- Trofei Virtuali (Avanti a Sinistra) -->
+      <a-entity position="-8.5 -0.5 -8.5" teleport-pad="target: -8.5 0 -8.5">
+        <!-- Base interagibile invisibile ma spessa -->
+        <a-cylinder class="tele-hit" radius="0.9" height="0.1" material="opacity: 0; transparent: true; depthWrite: false"></a-cylinder>
+        <!-- Disco base semi-trasparente -->
+        <a-cylinder radius="0.85" height="0.02" material="color: #0088aa; opacity: 0.3; transparent: true"></a-cylinder>
+        <!-- Bordo Neon -->
+        <a-torus class="tele-neon" radius="0.85" radius-tubular="0.02" rotation="90 0 0" position="0 0.01 0" material="color: #00d5ff; emissive: #00d5ff; emissiveIntensity: 1; opacity: 0.9; transparent: true"></a-torus>
+        <!-- Progress Ring per lo sguardo -->
+        <a-ring class="tele-ring" radius-inner="0.68" radius-outer="0.78" rotation="-90 0 0" position="0 0.02 0" material="color: #ffffff; shader: flat" geometry="thetaLength: 0"></a-ring>
+        <!-- Nucleo centrale opaco -->
+        <a-cylinder radius="0.5" height="0.025" material="color: #050505; metalness: 0.8; roughness: 0.2"></a-cylinder>
+        <!-- Testo 3D Fluttuante -->
+        <a-text pad-label value="TROFEI\nVIRTUALI" align="center" position="0 1.1 0" color="#00d5ff" font="exo2bold" width="3.5" wrap-count="14" letter-spacing="2"></a-text>
+      </a-entity>
+
+      <!-- Team e Sponsor (Avanti a Destra) -->
+      <a-entity position="8.5 -0.5 -8.5" teleport-pad="target: 8.5 0 -8.5">
+        <a-cylinder class="tele-hit" radius="0.9" height="0.1" material="opacity: 0; transparent: true; depthWrite: false"></a-cylinder>
+        <a-cylinder radius="0.85" height="0.02" material="color: #aa9900; opacity: 0.3; transparent: true"></a-cylinder>
+        <a-torus class="tele-neon" radius="0.85" radius-tubular="0.02" rotation="90 0 0" position="0 0.01 0" material="color: #ffd400; emissive: #ffd400; emissiveIntensity: 1; opacity: 0.9; transparent: true"></a-torus>
+        <a-ring class="tele-ring" radius-inner="0.68" radius-outer="0.78" rotation="-90 0 0" position="0 0.02 0" material="color: #ffffff; shader: flat" geometry="thetaLength: 0"></a-ring>
+        <a-cylinder radius="0.5" height="0.025" material="color: #050505; metalness: 0.8; roughness: 0.2"></a-cylinder>
+        <!-- Testo 3D Fluttuante -->
+        <a-text pad-label value="TEAM &\nSPONSOR" align="center" position="0 1.1 0" color="#ffd400" font="exo2bold" width="3.5" wrap-count="14" letter-spacing="2"></a-text>
+      </a-entity>
+
+      <!-- Ritorno al Centro (Posizione Iniziale) - Leggermente dietro per vederla -->
+      <a-entity position="0 -0.5 2" teleport-pad="target: 0 0 0">
+        <a-cylinder class="tele-hit" radius="0.9" height="0.1" material="opacity: 0; transparent: true; depthWrite: false"></a-cylinder>
+        <a-cylinder radius="0.85" height="0.02" material="color: #7700aa; opacity: 0.3; transparent: true"></a-cylinder>
+        <a-torus class="tele-neon" radius="0.85" radius-tubular="0.02" rotation="90 0 0" position="0 0.01 0" material="color: #cc44ff; emissive: #cc44ff; emissiveIntensity: 1; opacity: 0.9; transparent: true"></a-torus>
+        <a-ring class="tele-ring" radius-inner="0.68" radius-outer="0.78" rotation="-90 0 0" position="0 0.02 0" material="color: #ffffff; shader: flat" geometry="thetaLength: 0"></a-ring>
+        <a-cylinder radius="0.5" height="0.025" material="color: #050505; metalness: 0.8; roughness: 0.2"></a-cylinder>
+        <!-- Testo 3D Fluttuante -->
+        <a-text pad-label value="STAGE\nCENTRALE" align="center" position="0 1.1 0" color="#cc44ff" font="exo2bold" width="3.5" wrap-count="14" letter-spacing="2"></a-text>
+      </a-entity>
+
       <!-- ═══ CAMERA ══════════════════════════════════════════════════════════ -->
-      <a-entity id="cam" camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
-        <a-cursor fuse="false"
-          raycaster="objects: .gaze-target, .hotspot-trigger; far: 18"
-          geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.018"
-          material="color: #cc44ff; shader: flat; opacity: 0.9">
-        </a-cursor>
+      <a-entity id="rig" position="0 0 0">
+        <a-entity id="cam" camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
+          <a-cursor fuse="false"
+            raycaster="objects: .gaze-target, .hotspot-trigger, .tele-hit; far: 18"
+            geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.018"
+            material="color: #cc44ff; shader: flat; opacity: 0.9">
+          </a-cursor>
+        </a-entity>
       </a-entity>
 
       <!-- ═══ PANNELLI GAZE (4 attorno al viewer) ══════════════════════════════ -->
+      <a-entity hide-when-far="maxDist: 4.5">
+        <!-- P1 — sinistra-front (via di mezzo) -->
+        <a-entity position="-3.0 1.6 -1.5" rotation="0 60 0">
+          <a-text value="TITOLO 1" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
+          <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
+          <a-plane id="t1" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
+          <a-entity id="b1" gaze-body>
+            <a-plane width="1.7" height="0.72" position="0 -0.12 -0.005" material="color:#1a0033; opacity:0.95; transparent:true; side:double"></a-plane>
+            <a-box position=" 0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
+          </a-entity>
+        </a-entity>
 
-      <!-- P1 — sinistra-front -->
-      <a-entity position="-2.5 1.6 -1.5" rotation="0 60 0">
-        <a-text value="TITOLO 1" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
-        <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
-        <a-plane id="t1" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
-        <a-entity id="b1" gaze-body>
-          <a-plane width="1.7" height="0.72" position="0 -0.12 -0.005" material="color:#1a0033; opacity:0.95; transparent:true; side:double"></a-plane>
-          <a-box position=" 0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
+        <!-- P2 — destra-front (via di mezzo) -->
+        <a-entity position="3.0 1.6 -1.5" rotation="0 -60 0">
+          <a-text value="TITOLO 2" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
+          <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
+          <a-plane id="t2" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
+          <a-entity id="b2" gaze-body>
+            <a-plane width="1.7" height="0.72" position="0 -0.12 -0.005" material="color:#1a0033; opacity:0.95; transparent:true; side:double"></a-plane>
+            <a-box position=" 0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
+          </a-entity>
+        </a-entity>
+
+        <!-- P3 — sinistra-back -->
+        <a-entity position="-2.0 1.6 1.5" rotation="0 120 0">
+          <a-text value="TITOLO 3" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
+          <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
+          <a-plane id="t3" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
+          <a-entity id="b3" gaze-body>
+            <a-plane width="1.7" height="0.72" position="0 -0.12 -0.005" material="color:#1a0033; opacity:0.95; transparent:true; side:double"></a-plane>
+            <a-box position=" 0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
+          </a-entity>
+        </a-entity>
+
+        <!-- P4 — destra-back -->
+        <a-entity position="2.0 1.6 1.5" rotation="0 -120 0">
+          <a-text value="TITOLO 4" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
+          <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
+          <a-plane id="t4" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
+          <a-entity id="b4" gaze-body>
+            <a-plane width="1.7" height="0.72" position="0 -0.12 -0.005" material="color:#1a0033; opacity:0.95; transparent:true; side:double"></a-plane>
+            <a-box position=" 0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
+            <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
+          </a-entity>
         </a-entity>
       </a-entity>
 
-      <!-- P2 — destra-front -->
-      <a-entity position="2.5 1.6 -1.5" rotation="0 -60 0">
-        <a-text value="TITOLO 2" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
-        <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
-        <a-plane id="t2" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
-        <a-entity id="b2" gaze-body>
-          <a-plane width="1.7" height="0.72" position="0 -0.12 -0.005" material="color:#1a0033; opacity:0.95; transparent:true; side:double"></a-plane>
-          <a-box position=" 0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
+      <!-- ═══ ESPOSITORE TROFEI VIRTUALI (Area Sinistra) ═══════════════════════ -->
+      <a-entity id="trophy-display" position="-8.5 -0.5 -11.5">
+        
+        <!-- TROFEO 1 (Centrale, il più importante) -->
+        <a-entity position="0 0 -1.5">
+          <!-- Piedistallo -->
+          <a-cylinder radius="0.4" height="1.2" position="0 0.6 0" color="#222" material="metalness:0.9; roughness:0.1"></a-cylinder>
+          <a-cylinder radius="0.42" height="0.05" position="0 1.2 0" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-cylinder>
+          
+          <!-- Placeholder Trofeo 3D -->
+          <a-cone radius-bottom="0.2" radius-top="0.3" height="0.6" position="0 1.5 0" color="#ffd700" material="metalness:1.0; roughness:0.2"></a-cone>
+          <a-sphere radius="0.25" position="0 1.8 0" color="#ffd700" material="metalness:1.0; roughness:0.1"></a-sphere>
+
+          <!-- Pannello Descrizione -->
+          <a-entity position="0 0.8 0.6" rotation="-20 0 0">
+            <a-plane width="1.2" height="0.6" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
+            <a-box position="0 0.3 0" width="1.2" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
+            <a-text value="PREMIO ASSOLUTO 2023" align="center" position="0 0.15 0.01" color="#ffffff" font="exo2bold" width="2.2"></a-text>
+            <a-text value="Vincitori assoluti del campionato nazionale F1 in Schools, per la vettura più veloce e il miglior portfolio." align="center" position="0 -0.1 0.01" color="#aaddff" font="exo2semibold" width="1.8" wrap-count="30"></a-text>
+          </a-entity>
         </a-entity>
+
+        <!-- TROFEO 2 (Sinistra) -->
+        <a-entity position="-2.2 0 -0.5" rotation="0 45 0">
+          <a-cylinder radius="0.3" height="0.9" position="0 0.45 0" color="#222" material="metalness:0.9; roughness:0.1"></a-cylinder>
+          <a-cylinder radius="0.32" height="0.05" position="0 0.9 0" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-cylinder>
+          
+          <a-cone radius-bottom="0.15" radius-top="0.2" height="0.5" position="0 1.15 0" color="#c0c0c0" material="metalness:1.0; roughness:0.2"></a-cone>
+          
+          <a-entity position="0 0.6 0.5" rotation="-20 0 0">
+            <a-plane width="1.0" height="0.5" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
+            <a-box position="0 0.25 0" width="1.0" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
+            <a-text value="MIGLIOR DESIGN" align="center" position="0 0.1 0.01" color="#ffffff" font="exo2bold" width="1.8"></a-text>
+            <a-text value="Premio per l'innovazione aerodinamica e le scelte ingegneristiche." align="center" position="0 -0.1 0.01" color="#aaddff" font="exo2semibold" width="1.5" wrap-count="25"></a-text>
+          </a-entity>
+        </a-entity>
+
+        <!-- TROFEO 3 (Destra) -->
+        <a-entity position="2.2 0 -0.5" rotation="0 -45 0">
+          <a-cylinder radius="0.3" height="0.9" position="0 0.45 0" color="#222" material="metalness:0.9; roughness:0.1"></a-cylinder>
+          <a-cylinder radius="0.32" height="0.05" position="0 0.9 0" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-cylinder>
+          
+          <a-box width="0.3" height="0.5" depth="0.3" position="0 1.15 0" color="#cd7f32" material="metalness:1.0; roughness:0.3"></a-box>
+
+          <a-entity position="0 0.6 0.5" rotation="-20 0 0">
+            <a-plane width="1.0" height="0.5" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
+            <a-box position="0 0.25 0" width="1.0" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
+            <a-text value="VELOCITA' IN PISTA" align="center" position="0 0.1 0.01" color="#ffffff" font="exo2bold" width="1.8"></a-text>
+            <a-text value="Record di tracciato ottenuto durante le selezioni regionali." align="center" position="0 -0.1 0.01" color="#aaddff" font="exo2semibold" width="1.5" wrap-count="25"></a-text>
+          </a-entity>
+        </a-entity>
+
       </a-entity>
 
-      <!-- P3 — sinistra-back -->
-      <a-entity position="-2.0 1.6 1.5" rotation="0 120 0">
-        <a-text value="TITOLO 3" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
-        <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
-        <a-plane id="t3" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
-        <a-entity id="b3" gaze-body>
-          <a-plane width="1.7" height="0.72" position="0 -0.12 -0.005" material="color:#1a0033; opacity:0.95; transparent:true; side:double"></a-plane>
-          <a-box position=" 0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
+      <!-- ═══ BACHECHE AREA "TEAM E SPONSOR" (Destra/Frontale) ═══════════════════════ -->
+      <a-entity id="boards-team-sponsor">
+        
+        <!-- BACHECA SPONSOR (Verso la parete di destra) -->
+        <!-- Posizionata a X=11.5, Z=-7, ruotata per guardare verso X=7 -->
+        <a-entity position="11.5 1.8 -7" rotation="0 -90 0">
+          <!-- Piantana di supporto spostata leggermente indietro -->
+          <a-cylinder position="0 -1.15 -0.15" radius="0.15" height="2.3" color="#333333" material="metalness:0.9; roughness:0.2"></a-cylinder>
+          <a-cylinder position="0 -2.3 -0.15" radius="0.7" height="0.05" color="#1a1a1a" material="metalness:0.8; roughness:0.3"></a-cylinder>
+          
+          <!-- Struttura tabellone principale -->
+          <a-box width="6.0" height="3.4" depth="0.12" color="#1a1a1a" material="metalness:0.8; roughness:0.2"></a-box>
+          <!-- Pannello interno scuro -->
+          <a-box position="0 0 0.065" width="5.8" height="3.2" depth="0.01" color="#05000a"></a-box>
+          <!-- Strip LED superiore -->
+          <a-box position="0 1.7 0.06" width="6.0" height="0.04" depth="0.13" color="#ffd400" material="emissive:#ffd400; emissiveIntensity:0.8"></a-box>
+          
+          <!-- Testi -->
+          <a-text value="I NOSTRI SPONSOR" align="center" position="0 1.35 0.08" color="#ffd400" font="exo2bold" width="6.5" letter-spacing="2"></a-text>
+          <a-box position="0 1.1 0.075" width="5.5" height="0.01" depth="0.01" color="#ffd400" material="emissive:#ffd400; emissiveIntensity:0.5"></a-box>
+          
+          <!-- Placeholder per i loghi -->
+          <a-text value="[ Spazio per i loghi degli Sponsor ]" align="center" position="0 0 0.08" color="#666666" font="exo2semibold" width="5.0"></a-text>
         </a-entity>
-      </a-entity>
 
-      <!-- P4 — destra-back -->
-      <a-entity position="2.0 1.6 1.5" rotation="0 -120 0">
-        <a-text value="TITOLO 4" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
-        <a-box position="0 0.32 0" width="0.85" height="0.012" depth="0.005" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.8"></a-box>
-        <a-plane id="t4" class="gaze-target" width="1.9" height="1.2" position="0 0 0" material="opacity:0; transparent:true; side:double"></a-plane>
-        <a-entity id="b4" gaze-body>
-          <a-plane width="1.7" height="0.72" position="0 -0.12 -0.005" material="color:#1a0033; opacity:0.95; transparent:true; side:double"></a-plane>
-          <a-box position=" 0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="-0.84 -0.12 0" width="0.025" height="0.72" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="0  0.245 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-box position="0 -0.485 0" width="1.7" height="0.025" depth="0.008" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:1.1"></a-box>
-          <a-text value="Inserisci qui il tuo testo." align="center" color="#ddaaff" width="1.5" position="0 -0.12 0.01" wrap-count="30" font="exo2semibold"></a-text>
+        <!-- BACHECA TEAM (Verso la vetrata) -->
+        <!-- Posizionata a X=7, Z=-12.5, guarda verso Z=-7 -->
+        <a-entity position="7 1.8 -12.5" rotation="0 0 0">
+          <!-- Piantana di supporto spostata leggermente indietro -->
+          <a-cylinder position="0 -1.15 -0.15" radius="0.15" height="2.3" color="#333333" material="metalness:0.9; roughness:0.2"></a-cylinder>
+          <a-cylinder position="0 -2.3 -0.15" radius="0.7" height="0.05" color="#1a1a1a" material="metalness:0.8; roughness:0.3"></a-cylinder>
+          
+          <!-- Struttura tabellone principale -->
+          <a-box width="6.0" height="3.4" depth="0.12" color="#1a1a1a" material="metalness:0.8; roughness:0.2"></a-box>
+          <!-- Pannello interno scuro -->
+          <a-box position="0 0 0.065" width="5.8" height="3.2" depth="0.01" color="#05000a"></a-box>
+          <!-- Strip LED superiore -->
+          <a-box position="0 1.7 0.06" width="6.0" height="0.04" depth="0.13" color="#ffd400" material="emissive:#ffd400; emissiveIntensity:0.8"></a-box>
+          
+          <!-- Testi -->
+          <a-text value="IL TEAM" align="center" position="0 1.35 0.08" color="#ffd400" font="exo2bold" width="7.0" letter-spacing="2"></a-text>
+          <a-box position="0 1.1 0.075" width="5.5" height="0.01" depth="0.01" color="#ffd400" material="emissive:#ffd400; emissiveIntensity:0.5"></a-box>
+          
+          <!-- Placeholder per foto e ruoli -->
+          <a-text value="[ Spazio per le foto e i ruoli del Team ]" align="center" position="0 0 0.08" color="#666666" font="exo2semibold" width="5.0"></a-text>
         </a-entity>
+
       </a-entity>
 
       <!-- ═══ SCRIPT TEXTURE PAVIMENTO ════════════════════════════════════════ -->
