@@ -53,7 +53,12 @@
         this._camDir  = new THREE.Vector3();
         this._toPlat  = new THREE.Vector3();
       },
-      tick: function () {
+      tick: function (time, delta) {
+        // [OTTIMIZZAZIONE]: Calcola la prossimità solo ogni 150ms per limitare il CPU lag
+        this._t = (this._t || 0) + delta;
+        if (this._t < 150) return;
+        this._t = 0;
+
         // Lazy lookup camera
         if (!this._camEl) {
           this._camEl = document.getElementById('cam');
@@ -106,8 +111,6 @@
       init: function () {
         this._s = 0; this._t = 0;
         this.el.object3D.scale.set(0, 0, 0);
-        this.el.addEventListener('mouseenter', () => { this._t = 1; });
-        this.el.addEventListener('mouseleave', () => { this._t = 0; });
       },
       tick: function (time, delta) {
         if (Math.abs(this._s - this._t) < 0.005) {
@@ -203,6 +206,7 @@
 
         // Camera ref per lookAt manuale (più efficiente di look-at component)
         this._cam = null;
+        this._wp = new THREE.Vector3(); // [OTTIMIZZAZIONE RAM]: pre-allocato per evitare Garbage Collection lag
         document.querySelector('a-scene').addEventListener('loaded', () => {
           this._cam = document.getElementById('cam');
         });
@@ -250,9 +254,8 @@
 
         // Orienta pannello verso camera (solo quando aperto)
         if (this._panelOpen > 0.05 && this._cam) {
-          const wp = new THREE.Vector3();
-          this._cam.object3D.getWorldPosition(wp);
-          this.panel.object3D.lookAt(wp);
+          this._cam.object3D.getWorldPosition(this._wp);
+          this.panel.object3D.lookAt(this._wp);
         }
       }
     });
@@ -309,141 +312,13 @@
       remove: function () { this.el.object3D.remove(this.points); }
     });
 
-    // ── Anchor hotspot automatico sul bounding box del modello ────────────────
-    AFRAME.registerComponent('hotspot-anchor', {
-      schema: {
-        target: { type: 'string', default: '#carModel' },
-        ux: { type: 'number', default: 0.5 }, // 0..1 su X bbox
-        uy: { type: 'number', default: 0.5 }, // 0..1 su Y bbox
-        uz: { type: 'number', default: 0.5 }, // 0..1 su Z bbox
-        ox: { type: 'number', default: 0.0 }, // offset locale fine tuning
-        oy: { type: 'number', default: 0.0 },
-        oz: { type: 'number', default: 0.0 }
-      },
-      init: function () {
-        this._acc = 0;
-        this._placed = false;
-        this._place = this.place.bind(this);
-        this.el.sceneEl.addEventListener('loaded', this._place);
-        this.el.sceneEl.addEventListener('model-loaded', this._place);
-      },
-      update: function () {
-        // se cambiano ux/uy/uz/offset, riposiziona
-        this._placed = false;
-        this.place();
-      },
-      tick: function (time, delta) {
-        if (this._placed) return;
-        this._acc += delta;
-        if (this._acc < 200) return;
-        this._acc = 0;
-        this.place();
-      },
-      place: function () {
-        const parent = this.el.parentEl;
-        if (!parent) return;
-
-        const modelEl = parent.querySelector(this.data.target);
-        if (!modelEl || !modelEl.getObject3D('mesh')) return;
-
-        const box = new THREE.Box3().setFromObject(modelEl.object3D);
-        if (box.isEmpty()) return;
-
-        const wp = new THREE.Vector3(
-          THREE.MathUtils.lerp(box.min.x, box.max.x, this.data.ux),
-          THREE.MathUtils.lerp(box.min.y, box.max.y, this.data.uy),
-          THREE.MathUtils.lerp(box.min.z, box.max.z, this.data.uz)
-        );
-
-        const lp = parent.object3D.worldToLocal(wp.clone());
-        lp.x += this.data.ox; lp.y += this.data.oy; lp.z += this.data.oz;
-
-        this.el.object3D.position.copy(lp);
-        this._placed = true;
-      }
-    });
-
-    // ── Hotspot tuner (tastiera) ───────────────────────────────────────────────
-    // 1/2/3 seleziona hotspot; frecce = ux/uz; W/S=uy; Q/E=oy; SHIFT = step grande
-    AFRAME.registerComponent('hotspot-tuner', {
-      schema: { step: { type: 'number', default: 0.01 }, fast: { type: 'number', default: 0.05 } },
-      init: function () {
-        this.list = [
-          document.getElementById('hs-cockpit'),
-          document.getElementById('hs-prop'),
-          document.getElementById('hs-tyre')
-        ].filter(Boolean);
-
-        this.i = 0;
-        const logHelp = () => {
-          console.log('[hotspot-tuner] 1/2/3 select | arrows=ux/uz | W/S=uy | Q/E=oy | SHIFT=fast');
-          this._log();
-        };
-        setTimeout(logHelp, 400);
-
-        this._onKey = (e) => {
-          if (!this.list.length) return;
-          const fast = e.shiftKey ? this.data.fast : this.data.step;
-
-          if (e.key === '1') this.i = 0;
-          if (e.key === '2') this.i = 1;
-          if (e.key === '3') this.i = 2;
-
-          const el = this.list[this.i];
-          if (!el) return;
-
-          const comp = el.components['hotspot-anchor'];
-          if (!comp) return;
-
-          let { ux, uy, uz, ox, oy, oz } = comp.data;
-          let changed = true;
-
-          switch (e.key) {
-            case 'ArrowLeft':  ux -= fast; break;
-            case 'ArrowRight': ux += fast; break;
-            case 'ArrowUp':    uz -= fast; break;
-            case 'ArrowDown':  uz += fast; break;
-            case 'w': case 'W': uy += fast; break;
-            case 's': case 'S': uy -= fast; break;
-            case 'q': case 'Q': oy -= fast; break;
-            case 'e': case 'E': oy += fast; break;
-            default: changed = false;
-          }
-          if (!changed) return;
-
-          // clamp 0..1 per ux/uy/uz
-          ux = Math.min(1, Math.max(0, ux));
-          uy = Math.min(1, Math.max(0, uy));
-          uz = Math.min(1, Math.max(0, uz));
-
-          el.setAttribute('hotspot-anchor', { ux, uy, uz, ox, oy, oz });
-          comp._placed = false;
-          comp.place();
-          this._log();
-        };
-
-        window.addEventListener('keydown', this._onKey);
-      },
-      _log: function () {
-        const el = this.list[this.i];
-        if (!el || !el.components['hotspot-anchor']) return;
-        const d = el.components['hotspot-anchor'].data;
-        console.log(`[hotspot-tuner] selected=${el.id} ux=${d.ux.toFixed(3)} uy=${d.uy.toFixed(3)} uz=${d.uz.toFixed(3)} oy=${d.oy.toFixed(3)}`);
-      },
-      remove: function () {
-        window.removeEventListener('keydown', this._onKey);
-      }
-    });
-
     // ── Centra il GLB sul parent usando il bbox reale (ignora pivot errato) ────
     AFRAME.registerComponent('center-on-platform', {
       schema: { baseY: { type: 'number', default: 0.11 } }, // quota appoggio sopra il disco
       init: function () {
         this._center = this.center.bind(this);
         this.el.addEventListener('model-loaded', this._center);
-        this.el.sceneEl.addEventListener('loaded', this._center);
-        setTimeout(this._center, 300);
-        setTimeout(this._center, 900);
+        if (this.el.getObject3D('mesh')) this._center();
       },
       center: function () {
         if (!this.el.getObject3D('mesh') || !this.el.parentEl) return;
@@ -494,10 +369,11 @@
         }
       },
       tick: function (time, delta) {
-        // Effetto pulsazione idle
+        // [OTTIMIZZAZIONE]: Effetto pulsazione idle con bypass di aframe setAttribute (zero start/stop lag)
         if (this.neon) {
           const intensity = this.baseIntensity + Math.sin((time + this.timeOffset) / 200) * 0.3;
-          this.neon.setAttribute('material', 'emissiveIntensity', intensity);
+          const mesh = this.neon.getObject3D('mesh');
+          if (mesh && mesh.material) mesh.material.emissiveIntensity = intensity;
         }
 
         if (!this.hovering) return;
@@ -527,25 +403,27 @@
           this._cam = document.getElementById('cam');
         });
       },
-      tick: function (time) {
+      tick: function (time, delta) {
         if (!this._cam) return;
         
-        this._cam.object3D.getWorldPosition(this.wpCam);
-        this.el.object3D.getWorldPosition(this.wpMe);
-
-        // Calcola distanza (ignorando l'altezza Y per il calcolo)
-        const dist = Math.hypot(this.wpCam.x - this.wpMe.x, this.wpCam.z - this.wpMe.z);
-
-        // Se sei vicino (sul pad), nascondi. Altrimenti mostra.
-        this.el.object3D.visible = dist > 1.8;
+        this._t = (this._t || 0) + delta;
 
         if (this.el.object3D.visible) {
-          // Bobbing (fluttuazione su e giù)
+          // Bobbing (fluttuazione su e giù fluida frame-by-frame)
           this.el.object3D.position.y = this.baseY + Math.sin(time / 400) * 0.08;
           
-          // Guarda sempre la telecamera (assegnando la stessa Y per evitare l'inclinazione verticale)
+          // Guarda sempre la telecamera
           this.wpCam.y = this.el.object3D.position.y;
           this.el.object3D.lookAt(this.wpCam);
+        }
+
+        // [OTTIMIZZAZIONE]: Esegue la misurazione della distanza solo ogni 250ms
+        if (this._t > 250) {
+          this._t = 0;
+          this._cam.object3D.getWorldPosition(this.wpCam);
+          this.el.object3D.getWorldPosition(this.wpMe);
+          const dist = Math.hypot(this.wpCam.x - this.wpMe.x, this.wpCam.z - this.wpMe.z);
+          this.el.object3D.visible = dist > 1.8;
         }
       }
     });
@@ -561,8 +439,14 @@
           this._cam = document.getElementById('cam');
         });
       },
-      tick: function () {
+      tick: function (time, delta) {
         if (!this._cam) return;
+        
+        // [OTTIMIZZAZIONE]: Misura del range eseguita 4 volte al secondo (e non frame-by-frame)
+        this._t = (this._t || 0) + delta;
+        if (this._t < 250) return;
+        this._t = 0;
+
         this._cam.object3D.getWorldPosition(this.wpCam);
         this.el.object3D.getWorldPosition(this.wpMe);
         
@@ -580,11 +464,11 @@
     </script>
   </head>
   <body>
+    <!-- [OTTIMIZZAZIONE GPU]: Foveation level per ridurre la risoluzione ai bordi delle lenti -->
     <a-scene
       background="color: #282828"
       vr-mode-ui="enabled: true"
-      renderer="antialias: true; colorManagement: true"
-      hotspot-tuner
+      renderer="antialias: false; colorManagement: true; foveationLevel: 1; highRefreshRate: true;"
     >
 
       <!-- ═══ ASSETS ══════════════════════════════════════════════════════════ -->
@@ -799,10 +683,7 @@
       <!-- Soglia/pavimento rialzato vetrata -->
       <a-box position="0 -0.4 -13.9" width="28" height="0.22" depth="0.3" color="#333333" material="metalness:0.7;roughness:0.2"></a-box>
 
-      <!-- ═══ LUCI BOKEH (Ottimizzate - ZERO LAG) ═════════════════════════════
-           Uso di shader:flat per renderle luminose come neon senza usare
-           <a-light> che facevano laggare / sparire la scena.
-      ──────────────────────────────────────────────────────────────────────── -->
+      <!-- ═══ LUCI BOKEH (Ottimizzate per Fill-Rate GPU / Ridotte da 8 a 4) ════════ -->
       <a-plane position="-9 6.5 -13.3" width="6.0" height="6.0"
         material="src:#bokeh-tex; color:#ffdd99; opacity:0.30; transparent:true; blending:additive; depthWrite:false; shader:flat">
       </a-plane>
@@ -852,7 +733,7 @@
            della piattaforma, lunghezza ~5m lungo l'asse X):
              H1 Cockpit:     ( 0.0,  1.2,  0.3)
              H2 Propulsione: (-2.1,  0.6,  0.0)  — estremità posteriore
-             H3 Pneumatico:  ( 1.4,  0.15, 0.8)  — ruota anteriore
+             H3 Pneumatico:  ( 1.4,  0.15,  0.8)  — ruota anteriore
              H4 Avantreno:   ( 2.3,  0.2,  0.0)  — muso
            NB: se le posizioni non coincidono con la geometria reale,
            comunicalo e verranno corrette.
@@ -861,7 +742,7 @@
                 position="0 -0.5 -6"
                 rotate-y="speed: 0.25"
                 car-platform
-                spark-particles="count:80; radius:3.8; color1:#cc44ff; color2:#aaaaff">
+                spark-particles="count:40; radius:3.8; color1:#cc44ff; color2:#aaaaff">
 
         <!-- Disco -->
         <a-cylinder height="0.1" radius="3.8" color="#1a1a1a" material="metalness:0.9; roughness:0.1"></a-cylinder>
@@ -993,8 +874,9 @@
       <!-- ═══ CAMERA ══════════════════════════════════════════════════════════ -->
       <a-entity id="rig" position="0 0 0">
         <a-entity id="cam" camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
+          <!-- [OTTIMIZZAZIONE CPU]: interval 75 evita calcoli raycaster eccessivi ad ogni singolo frame -->
           <a-cursor fuse="false"
-            raycaster="objects: .gaze-target, .hotspot-trigger, .tele-hit; far: 18"
+            raycaster="objects: .gaze-target, .hotspot-trigger, .tele-hit; far: 18; interval: 75"
             geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.018"
             material="color: #cc44ff; shader: flat; opacity: 0.9">
           </a-cursor>
@@ -1065,7 +947,8 @@
       </a-entity>
 
       <!-- ═══ ESPOSITORE TROFEI VIRTUALI (Area Sinistra) ═══════════════════════ -->
-      <a-entity id="trophy-display" position="-8.5 -0.5 -11.5">
+      <!-- Aumentata la scala a 1.3 e spostato leggermente verso il centro per compensare l'ingombro -->
+      <a-entity id="trophy-display" position="-8.0 -0.5 -10.5" scale="1.3 1.3 1.3">
         
         <!-- TROFEO 1 (Centrale, il più importante) -->
         <a-entity position="0 0 -1.5">
