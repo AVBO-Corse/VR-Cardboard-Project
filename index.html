@@ -314,10 +314,19 @@
 
     // ── Centra il GLB sul parent usando il bbox reale (ignora pivot errato) ────
     AFRAME.registerComponent('center-on-platform', {
-      schema: { baseY: { type: 'number', default: 0.11 } }, // quota appoggio sopra il disco
+      schema: {
+        baseY: { type: 'number', default: 0.11 },
+        targetLength: { type: 'number', default: 0 } // 0 = nessuna normalizzazione scala
+      }, // quota appoggio sopra il disco
       init: function () {
+        this._scaledOnce = false;
         this._center = this.center.bind(this);
+        this._onTransformChanged = (e) => {
+          const name = e && e.detail ? e.detail.name : '';
+          if (name === 'position' || name === 'rotation' || name === 'scale') this.center();
+        };
         this.el.addEventListener('model-loaded', this._center);
+        this.el.addEventListener('componentchanged', this._onTransformChanged);
         if (this.el.getObject3D('mesh')) this._center();
       },
       center: function () {
@@ -327,8 +336,22 @@
         const box = new THREE.Box3().setFromObject(this.el.object3D);
         if (box.isEmpty()) return;
 
-        const centerW = box.getCenter(new THREE.Vector3());
-        const bottomW = new THREE.Vector3(centerW.x, box.min.y, centerW.z);
+        // Normalizza la scala una sola volta in base alla lunghezza reale del modello.
+        if (!this._scaledOnce && this.data.targetLength > 0) {
+          const size = box.getSize(new THREE.Vector3());
+          const currentLength = Math.max(size.x, size.z);
+          if (currentLength > 0.0001) {
+            const factor = this.data.targetLength / currentLength;
+            this.el.object3D.scale.multiplyScalar(factor);
+            this._scaledOnce = true;
+          }
+        }
+
+        const fitBox = new THREE.Box3().setFromObject(this.el.object3D);
+        if (fitBox.isEmpty()) return;
+
+        const centerW = fitBox.getCenter(new THREE.Vector3());
+        const bottomW = new THREE.Vector3(centerW.x, fitBox.min.y, centerW.z);
 
         const centerL = parentObj.worldToLocal(centerW.clone());
         const bottomL = parentObj.worldToLocal(bottomW.clone());
@@ -337,6 +360,10 @@
         p.x -= centerL.x;                // centra su X
         p.z -= centerL.z;                // centra su Z
         p.y += (this.data.baseY - bottomL.y); // appoggia in Y
+      },
+      remove: function () {
+        this.el.removeEventListener('model-loaded', this._center);
+        this.el.removeEventListener('componentchanged', this._onTransformChanged);
       }
     });
 
@@ -477,7 +504,7 @@
         <canvas id="logo-canvas" width="1624" height="1183"></canvas>
         <img id="logo-img" src="logo.png" crossorigin="anonymous" style="display:none">
         <img id="stem-logo" src="stem_racing.png" crossorigin="anonymous">
-        <a-asset-item id="auto" src="macchina_test.glb"></a-asset-item>
+        <a-asset-item id="auto" src="macchina_2025-26.glb"></a-asset-item>
         <canvas id="bokeh-tex" width="128" height="128"></canvas>
       </a-assets>
 
@@ -754,9 +781,9 @@
         <!-- Macchina ~5m, centrata sull'origine -->
         <a-entity id="carModel"
           gltf-model="#auto"
-          center-on-platform="baseY:0.11"
-          rotation="-90 90 0"
-          scale="0.032 0.032 0.032"
+          center-on-platform="baseY:0.11; targetLength:7.4"
+          rotation="0 270 0"
+          scale="1 1 1"
           position="0 0 0">
         </a-entity>
 
@@ -797,16 +824,16 @@
              Regolata la Y a 0.51 (da verificare se poggia giusto) 
              Ruotata affinché il fronte segua l'asse longitudinale del piedistallo 
         -->
-        <a-entity id="oldCarModel" gltf-model="#auto" rotation="-90 90 0" scale="0.02222 0.02222 0.02222" position="0 0.51 -2.44"></a-entity>
+        <a-entity id="oldCarModel" gltf-model="#auto" rotation="0 90 0" scale="0.02222 0.02222 0.02222" position="0 0.51 -2.44"></a-entity>
 
         <!-- Targhetta descrittiva inclinata sul fronte del piedistallo -->
         <a-entity position="0 0.45 3.1" rotation="-30 0 0">
-          <a-plane width="1.2" height="0.5" color="#0a001a" material="metalness:0.5; roughness:0.5"></a-plane>
-          <a-box position="0 0 -0.02" width="1.24" height="0.54" depth="0.03" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.5"></a-box>
+          <a-plane width="1.32" height="0.55" color="#0a001a" material="metalness:0.5; roughness:0.5"></a-plane>
+          <a-box position="0 0 -0.02" width="1.36" height="0.59" depth="0.03" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.5"></a-box>
           
-          <a-text value="AVBO CORSE 2023" align="center" position="0 0.12 0.01" width="2.4" font="exo2bold" color="#ffffff" letter-spacing="1"></a-text>
-          <a-box position="0 0 0.005" width="0.8" height="0.005" depth="0.005" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.8"></a-box>
-          <a-text value="Modello Vettura Anno Precedente" align="center" position="0 -0.12 0.01" width="1.6" font="exo2semibold" color="#ccaaff"></a-text>
+          <a-text value="AVBO CORSE 2023/2024" align="center" position="0 0.13 0.01" width="2.6" font="exo2bold" color="#ffffff" letter-spacing="1"></a-text>
+          <a-box position="0 0 0.005" width="0.9" height="0.005" depth="0.005" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.8"></a-box>
+          <a-text value="Specifica gara stagione 2023/2024" align="center" position="0 -0.13 0.01" width="1.75" font="exo2semibold" color="#ccaaff"></a-text>
         </a-entity>
       </a-entity>
 
@@ -818,16 +845,16 @@
         <a-box position="0 0.40 0" width="1.75" height="0.03" depth="5.95" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.6"></a-box>
 
         <!-- Modello auto 2022 (placeholder) -->
-        <a-entity id="olderCarModel" gltf-model="#auto" rotation="-90 90 0" scale="0.02222 0.02222 0.02222" position="0 0.51 -2.44"></a-entity>
+        <a-entity id="olderCarModel" gltf-model="#auto" rotation="0 90 0" scale="0.02222 0.02222 0.02222" position="0 0.51 -2.44"></a-entity>
 
         <!-- Targhetta descrittiva inclinata sul fronte del piedistallo -->
         <a-entity position="0 0.45 3.1" rotation="-30 0 0">
-          <a-plane width="1.2" height="0.5" color="#0a001a" material="metalness:0.5; roughness:0.5"></a-plane>
-          <a-box position="0 0 -0.02" width="1.24" height="0.54" depth="0.03" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.5"></a-box>
+          <a-plane width="1.32" height="0.55" color="#0a001a" material="metalness:0.5; roughness:0.5"></a-plane>
+          <a-box position="0 0 -0.02" width="1.36" height="0.59" depth="0.03" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.5"></a-box>
           
-          <a-text value="AVBO CORSE 2022" align="center" position="0 0.12 0.01" width="2.4" font="exo2bold" color="#ffffff" letter-spacing="1"></a-text>
-          <a-box position="0 0 0.005" width="0.8" height="0.005" depth="0.005" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.8"></a-box>
-          <a-text value="Modello Storico del Team" align="center" position="0 -0.12 0.01" width="1.6" font="exo2semibold" color="#ccaaff"></a-text>
+          <a-text value="AVBO CORSE 2024/2025" align="center" position="0 0.13 0.01" width="2.6" font="exo2bold" color="#ffffff" letter-spacing="1"></a-text>
+          <a-box position="0 0 0.005" width="0.9" height="0.005" depth="0.005" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.8"></a-box>
+          <a-text value="Evoluzione tecnica stagione 2024/2025" align="center" position="0 -0.13 0.01" width="1.75" font="exo2semibold" color="#ccaaff"></a-text>
         </a-entity>
       </a-entity>
 
@@ -962,10 +989,10 @@
 
           <!-- Pannello Descrizione -->
           <a-entity position="0 0.8 0.6" rotation="-20 0 0">
-            <a-plane width="1.2" height="0.6" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
-            <a-box position="0 0.3 0" width="1.2" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
-            <a-text value="PREMIO ASSOLUTO 2023" align="center" position="0 0.15 0.01" color="#ffffff" font="exo2bold" width="2.2"></a-text>
-            <a-text value="Vincitori assoluti del campionato nazionale F1 in Schools, per la vettura più veloce e il miglior portfolio." align="center" position="0 -0.1 0.01" color="#aaddff" font="exo2semibold" width="1.8" wrap-count="30"></a-text>
+            <a-plane width="1.62" height="0.86" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
+            <a-box position="0 0.43 0" width="1.62" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
+            <a-text value="PRIMO POSTO REGIONALI 2024/25" align="center" position="0 0.23 0.01" color="#ffffff" font="exo2bold" width="2.0" wrap-count="26"></a-text>
+            <a-text value="Primo posto nella competizione regionale F1 in Schools, stagione 2024/25." align="center" position="0 -0.14 0.01" color="#aaddff" font="exo2semibold" width="1.68" wrap-count="34"></a-text>
           </a-entity>
         </a-entity>
 
@@ -977,10 +1004,10 @@
           <a-cone radius-bottom="0.15" radius-top="0.2" height="0.5" position="0 1.15 0" color="#c0c0c0" material="metalness:1.0; roughness:0.2"></a-cone>
           
           <a-entity position="0 0.6 0.5" rotation="-20 0 0">
-            <a-plane width="1.0" height="0.5" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
-            <a-box position="0 0.25 0" width="1.0" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
-            <a-text value="MIGLIOR DESIGN" align="center" position="0 0.1 0.01" color="#ffffff" font="exo2bold" width="1.8"></a-text>
-            <a-text value="Premio per l'innovazione aerodinamica e le scelte ingegneristiche." align="center" position="0 -0.1 0.01" color="#aaddff" font="exo2semibold" width="1.5" wrap-count="25"></a-text>
+            <a-plane width="1.46" height="0.78" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
+            <a-box position="0 0.39 0" width="1.46" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
+            <a-text value="PREMIO SOSTENIBILITA'" align="center" position="0 0.20 0.01" color="#ffffff" font="exo2bold" width="1.9" wrap-count="24"></a-text>
+            <a-text value="Riconoscimento per l'approccio sostenibile: materiali, processo di produzione e impatto ambientale ridotto." align="center" position="0 -0.13 0.01" color="#aaddff" font="exo2semibold" width="1.62" wrap-count="30"></a-text>
           </a-entity>
         </a-entity>
 
@@ -992,10 +1019,10 @@
           <a-box width="0.3" height="0.5" depth="0.3" position="0 1.15 0" color="#cd7f32" material="metalness:1.0; roughness:0.3"></a-box>
 
           <a-entity position="0 0.6 0.5" rotation="-20 0 0">
-            <a-plane width="1.0" height="0.5" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
-            <a-box position="0 0.25 0" width="1.0" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
-            <a-text value="VELOCITA' IN PISTA" align="center" position="0 0.1 0.01" color="#ffffff" font="exo2bold" width="1.8"></a-text>
-            <a-text value="Record di tracciato ottenuto durante le selezioni regionali." align="center" position="0 -0.1 0.01" color="#aaddff" font="exo2semibold" width="1.5" wrap-count="25"></a-text>
+            <a-plane width="1.46" height="0.78" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
+            <a-box position="0 0.39 0" width="1.46" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
+            <a-text value="PREMIO WOW 2025" align="center" position="0 0.20 0.01" color="#ffffff" font="exo2bold" width="1.9" wrap-count="22"></a-text>
+            <a-text value="Premio speciale 2025 assegnato per impatto visivo, comunicazione e presentazione del progetto." align="center" position="0 -0.13 0.01" color="#aaddff" font="exo2semibold" width="1.62" wrap-count="30"></a-text>
           </a-entity>
         </a-entity>
 
