@@ -488,6 +488,44 @@
       }
     });
 
+    // ── Chiudi Pannello Benvenuto ──────────────────────────────────────────────
+    AFRAME.registerComponent('close-welcome', {
+      init: function () {
+        this.hovering = false;
+        this.timer = 0;
+        this.ring = this.el.querySelector('.btn-ring');
+        
+        // Attacchiamo gli eventi anche al piano che fa da "hitbox" visibile al raycaster
+        const hitbox = this.el.querySelector('a-plane.gaze-target');
+        if (hitbox) {
+          hitbox.addEventListener('mouseenter', () => { this.hovering = true; });
+          hitbox.addEventListener('mouseleave', () => { 
+            this.hovering = false; 
+            this.timer = 0; 
+            if (this.ring) this.ring.setAttribute('geometry', 'thetaLength', 0); 
+          });
+          hitbox.addEventListener('click', () => { this.timer = 800; });
+        }
+      },
+      tick: function (time, delta) {
+        if (!this.hovering) return;
+        this.timer += delta;
+        if (this.ring) this.ring.setAttribute('geometry', 'thetaLength', Math.min((this.timer / 800) * 360, 360));
+        
+        if (this.timer >= 800) {
+          this.hovering = false;
+          this.timer = 0;
+          if (this.ring) this.ring.setAttribute('geometry', 'thetaLength', 0);
+          
+          const panel = this.el.sceneEl.querySelector('#welcome-panel');
+          if (panel) {
+            panel.setAttribute('visible', 'false');
+            panel.setAttribute('position', '0 100 0');
+          }
+        }
+      }
+    });
+
     </script>
   </head>
   <body>
@@ -502,9 +540,12 @@
       <a-assets timeout="10000">
         <canvas id="floor-tex" width="256" height="256"></canvas>
         <canvas id="logo-canvas" width="1624" height="1183"></canvas>
-        <img id="logo-img" src="logo.png" crossorigin="anonymous" style="display:none">
-        <img id="stem-logo" src="stem_racing.png" crossorigin="anonymous">
+        <img id="logo-img" src="img/logo.png" crossorigin="anonymous" style="display:none">
+        <img id="stem-logo" src="img/stem_racing.png" crossorigin="anonymous">
+        <img id="team1-img" src="img/team%201.jpg" crossorigin="anonymous">
+        <img id="avbo2-img" src="img/avbo%202.jpg" crossorigin="anonymous">
         <a-asset-item id="auto" src="macchina_2025-26.glb"></a-asset-item>
+        <a-asset-item id="trophy-glb" src="Meshy_AI_Golden_Victory_Trophy_0415221224_texture.glb"></a-asset-item>
         <canvas id="bokeh-tex" width="128" height="128"></canvas>
       </a-assets>
 
@@ -797,65 +838,20 @@
         -->
 
         <!-- H1 — Cockpit (centro macchina, alto) -->
-        <a-entity position="0 1.0 -0.2"
+        <a-entity position="0 100 -0.2"
           hotspot="title:Cockpit; body:Abitacolo in fibra di carbonio.\nRoll hoop integrato.\nVisiera riscaldata anti-appannamento.; color:#cc44ff">
         </a-entity>
 
         <!-- H2 — Propulsione -->
-        <a-entity position="0.4 1.3 -1.0"
+        <a-entity position="0.4 100 -1.0"
           hotspot="title:Propulsione; body:Sistema pneumatico ad aria compressa.\nCapsule inserite nel posteriore.\nSpinta istantanea senza motore elettrico.; color:#ff6600">
         </a-entity>
 
         <!-- H3 — Pneumatico (lato sinistro, zona anteriore) -->
-        <a-entity position="-0.9 0.2 -1.5"
+        <a-entity position="-0.9 100 -1.5"
           hotspot="title:Pneumatico; body:Gomme a bassa resistenza.\nDiametro 13 pollici.\nFormulazione per piste indoor.; color:#00ccff">
         </a-entity>
 
-      </a-entity>
-
-      <!-- ═══ VETTURA ANNO PRECEDENTE (Piedistallo a destra, più arretrato) ════ -->
-      <a-entity id="old-car-display" position="6.0 0 1.5" rotation="0 -120 0">
-        <!-- Struttura piedistallo -->
-        <a-box position="0 0.20 0" width="1.8" height="0.4" depth="6.0" color="#1a1a1a" material="metalness:0.8; roughness:0.2"></a-box>
-        <!-- Profilo luminoso superiore -->
-        <a-box position="0 0.40 0" width="1.75" height="0.03" depth="5.95" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.6"></a-box>
-
-        <!-- Modello auto 2023 
-             Regolata la Y a 0.51 (da verificare se poggia giusto) 
-             Ruotata affinché il fronte segua l'asse longitudinale del piedistallo 
-        -->
-        <a-entity id="oldCarModel" gltf-model="#auto" rotation="0 90 0" scale="0.02222 0.02222 0.02222" position="0 0.51 -2.44"></a-entity>
-
-        <!-- Targhetta descrittiva inclinata sul fronte del piedistallo -->
-        <a-entity position="0 0.45 3.1" rotation="-30 0 0">
-          <a-plane width="1.32" height="0.55" color="#0a001a" material="metalness:0.5; roughness:0.5"></a-plane>
-          <a-box position="0 0 -0.02" width="1.36" height="0.59" depth="0.03" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.5"></a-box>
-          
-          <a-text value="AVBO CORSE 2023/2024" align="center" position="0 0.13 0.01" width="2.6" font="exo2bold" color="#ffffff" letter-spacing="1"></a-text>
-          <a-box position="0 0 0.005" width="0.9" height="0.005" depth="0.005" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.8"></a-box>
-          <a-text value="Specifica gara stagione 2023/2024" align="center" position="0 -0.13 0.01" width="1.75" font="exo2semibold" color="#ccaaff"></a-text>
-        </a-entity>
-      </a-entity>
-
-      <!-- ═══ VETTURA STORICA (Piedistallo a sinistra, speculare) ══════════════ -->
-      <a-entity id="older-car-display" position="-6.0 0 1.5" rotation="0 120 0">
-        <!-- Struttura piedistallo -->
-        <a-box position="0 0.20 0" width="1.8" height="0.4" depth="6.0" color="#1a1a1a" material="metalness:0.8; roughness:0.2"></a-box>
-        <!-- Profilo luminoso superiore -->
-        <a-box position="0 0.40 0" width="1.75" height="0.03" depth="5.95" color="#8800ee" material="emissive:#8800ee; emissiveIntensity:0.6"></a-box>
-
-        <!-- Modello auto 2022 (placeholder) -->
-        <a-entity id="olderCarModel" gltf-model="#auto" rotation="0 90 0" scale="0.02222 0.02222 0.02222" position="0 0.51 -2.44"></a-entity>
-
-        <!-- Targhetta descrittiva inclinata sul fronte del piedistallo -->
-        <a-entity position="0 0.45 3.1" rotation="-30 0 0">
-          <a-plane width="1.32" height="0.55" color="#0a001a" material="metalness:0.5; roughness:0.5"></a-plane>
-          <a-box position="0 0 -0.02" width="1.36" height="0.59" depth="0.03" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.5"></a-box>
-          
-          <a-text value="AVBO CORSE 2024/2025" align="center" position="0 0.13 0.01" width="2.6" font="exo2bold" color="#ffffff" letter-spacing="1"></a-text>
-          <a-box position="0 0 0.005" width="0.9" height="0.005" depth="0.005" color="#cc44ff" material="emissive:#cc44ff; emissiveIntensity:0.8"></a-box>
-          <a-text value="Evoluzione tecnica stagione 2024/2025" align="center" position="0 -0.13 0.01" width="1.75" font="exo2semibold" color="#ccaaff"></a-text>
-        </a-entity>
       </a-entity>
 
       <!-- ═══ TELEPORT PADS (Pedane Olografiche per muoversi nel VR) ═══════════ -->
@@ -900,6 +896,27 @@
 
       <!-- ═══ CAMERA ══════════════════════════════════════════════════════════ -->
       <a-entity id="rig" position="0 0 0">
+        
+        <!-- Pannello Benvenuto (attaccato al rig così appare subito davanti) -->
+        <a-entity id="welcome-panel" position="0 1.6 -2.0">
+          <a-plane width="3.2" height="1.8" color="#050a14" material="opacity:0.95; transparent:true"></a-plane>
+          <!-- Bordo neon in cima -->
+          <a-box position="0 0.9 0" width="3.2" height="0.04" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:1"></a-box>
+          
+          <a-text value="BENVENUTO NELLO SHOWROOM AVBO CORSE!" align="center" position="0 0.54 0.02" color="#ffffff" font="exo2bold" width="2.6" wrap-count="42" line-height="60"></a-text>
+          
+          <a-text value="Esplora il nostro spazio virtuale per scoprire la nuova vettura 2025/26, la nostra bacheca trofei, il team e gli sponsor che ci supportano.\n\n[ Usa il puntatore al centro della visuale per interagire con i pulsanti e teletrasportarti ]" align="center" position="0 -0.03 0.02" color="#aaddff" font="exo2semibold" width="2.25" wrap-count="48" line-height="60"></a-text>
+          
+          <!-- Pulsante CHIUDI -->
+          <a-entity position="0 -0.76 0.02" class="gaze-target" close-welcome>
+            <a-plane width="1.2" height="0.3" color="#00d5ff" material="opacity:0.2; transparent:true" class="gaze-target"></a-plane>
+            <a-box position="0 0 -0.01" width="1.22" height="0.32" depth="0.01" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.5"></a-box>
+            <a-text value="CHIUDI" align="center" position="0 0 0.01" color="#ffffff" font="exo2bold" width="2.0" letter-spacing="2"></a-text>
+            <!-- Progress Ring per lo sguardo -->
+            <a-ring class="btn-ring" radius-inner="0.12" radius-outer="0.15" material="color: #ffffff; shader: flat" geometry="thetaLength: 0" position="0.5 0 0.01"></a-ring>
+          </a-entity>
+        </a-entity>
+
         <a-entity id="cam" camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
           <!-- [OTTIMIZZAZIONE CPU]: interval 75 evita calcoli raycaster eccessivi ad ogni singolo frame -->
           <a-cursor fuse="false"
@@ -910,8 +927,8 @@
         </a-entity>
       </a-entity>
 
-      <!-- ═══ PANNELLI GAZE (4 attorno al viewer) ══════════════════════════════ -->
-      <a-entity hide-when-far="maxDist: 4.5">
+      <!-- ═══ PANNELLI GAZE (Nascosti per ora) ══════════════════════════════ -->
+      <a-entity hide-when-far="maxDist: 4.5" visible="false" position="0 100 0">
         <!-- P1 — sinistra-front (via di mezzo) -->
         <a-entity position="-3.0 1.6 -1.5" rotation="0 60 0">
           <a-text value="TITOLO 1" align="center" color="#bb44ff" width="2.4" position="0 0.52 0" wrap-count="18" font="exo2bold" letter-spacing="2"></a-text>
@@ -983,16 +1000,16 @@
           <a-cylinder radius="0.4" height="1.2" position="0 0.6 0" color="#222" material="metalness:0.9; roughness:0.1"></a-cylinder>
           <a-cylinder radius="0.42" height="0.05" position="0 1.2 0" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-cylinder>
           
-          <!-- Placeholder Trofeo 3D -->
-          <a-cone radius-bottom="0.2" radius-top="0.3" height="0.6" position="0 1.5 0" color="#ffd700" material="metalness:1.0; roughness:0.2"></a-cone>
-          <a-sphere radius="0.25" position="0 1.8 0" color="#ffd700" material="metalness:1.0; roughness:0.1"></a-sphere>
+          <!-- Trofeo "PRIMO POSTO REGIONALI" - Modello GLB Esterno -->
+          <!-- Aggiustiamo posizione e scala approssimativa, potresti doverla tarare -->
+          <a-entity gltf-model="#trophy-glb" position="0 1.95 0" scale="0.9 0.9 0.9"></a-entity>
 
           <!-- Pannello Descrizione -->
           <a-entity position="0 0.8 0.6" rotation="-20 0 0">
             <a-plane width="1.62" height="0.86" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
             <a-box position="0 0.43 0" width="1.62" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
-            <a-text value="PRIMO POSTO REGIONALI 2024/25" align="center" position="0 0.23 0.01" color="#ffffff" font="exo2bold" width="2.0" wrap-count="26"></a-text>
-            <a-text value="Primo posto nella competizione regionale F1 in Schools, stagione 2024/25." align="center" position="0 -0.14 0.01" color="#aaddff" font="exo2semibold" width="1.68" wrap-count="34"></a-text>
+            <a-text value="PRIMO POSTO REGIONALI\n2024/25" align="center" position="0 0.22 0.01" color="#ffffff" font="exo2bold" width="1.9" wrap-count="24"></a-text>
+            <a-text value="Primo posto nella competizione\nregionale F1 in Schools,\nstagione 2024/25." align="center" position="0 -0.17 0.01" color="#aaddff" font="exo2semibold" width="1.68" wrap-count="32" line-height="55"></a-text>
           </a-entity>
         </a-entity>
 
@@ -1006,8 +1023,8 @@
           <a-entity position="0 0.6 0.5" rotation="-20 0 0">
             <a-plane width="1.46" height="0.78" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
             <a-box position="0 0.39 0" width="1.46" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
-            <a-text value="PREMIO SOSTENIBILITA'" align="center" position="0 0.20 0.01" color="#ffffff" font="exo2bold" width="1.9" wrap-count="24"></a-text>
-            <a-text value="Riconoscimento per l'approccio sostenibile: materiali, processo di produzione e impatto ambientale ridotto." align="center" position="0 -0.13 0.01" color="#aaddff" font="exo2semibold" width="1.62" wrap-count="30"></a-text>
+            <a-text value="PREMIO\nSOSTENIBILITA'" align="center" position="0 0.18 0.01" color="#ffffff" font="exo2bold" width="1.8" wrap-count="20"></a-text>
+            <a-text value="Riconoscimento per l'approccio\nsostenibile: materiali, processo\ne impatto ambientale ridotto." align="center" position="0 -0.15 0.01" color="#aaddff" font="exo2semibold" width="1.5" wrap-count="30" line-height="55"></a-text>
           </a-entity>
         </a-entity>
 
@@ -1021,8 +1038,8 @@
           <a-entity position="0 0.6 0.5" rotation="-20 0 0">
             <a-plane width="1.46" height="0.78" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
             <a-box position="0 0.39 0" width="1.46" height="0.02" depth="0.02" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-box>
-            <a-text value="PREMIO WOW 2025" align="center" position="0 0.20 0.01" color="#ffffff" font="exo2bold" width="1.9" wrap-count="22"></a-text>
-            <a-text value="Premio speciale 2025 assegnato per impatto visivo, comunicazione e presentazione del progetto." align="center" position="0 -0.13 0.01" color="#aaddff" font="exo2semibold" width="1.62" wrap-count="30"></a-text>
+            <a-text value="PREMIO WOW\n2025" align="center" position="0 0.18 0.01" color="#ffffff" font="exo2bold" width="1.8" wrap-count="20"></a-text>
+            <a-text value="Premio speciale 2025 assegnato\nper impatto visivo, comunicazione\ne presentazione del progetto." align="center" position="0 -0.15 0.01" color="#aaddff" font="exo2semibold" width="1.5" wrap-count="30" line-height="55"></a-text>
           </a-entity>
         </a-entity>
 
@@ -1071,8 +1088,12 @@
           <a-text value="IL TEAM" align="center" position="0 1.35 0.08" color="#ffd400" font="exo2bold" width="7.0" letter-spacing="2"></a-text>
           <a-box position="0 1.1 0.075" width="5.5" height="0.01" depth="0.01" color="#ffd400" material="emissive:#ffd400; emissiveIntensity:0.5"></a-box>
           
-          <!-- Placeholder per foto e ruoli -->
-          <a-text value="[ Spazio per le foto e i ruoli del Team ]" align="center" position="0 0 0.08" color="#666666" font="exo2semibold" width="5.0"></a-text>
+          <!-- Foto e ruoli del Team -->
+          <a-image src="#team1-img" position="-1.5 0.2 0.08" width="2.5" height="1.6"></a-image>
+          <a-text value="I 6 membri principali del team." align="center" position="-1.5 -0.9 0.08" color="#cccccc" font="exo2semibold" width="2.6" wrap-count="35"></a-text>
+
+          <a-image src="#avbo2-img" position="1.5 0.2 0.08" width="2.5" height="1.6"></a-image>
+          <a-text value="La nostra squadra al completo." align="center" position="1.5 -0.9 0.08" color="#cccccc" font="exo2semibold" width="2.6" wrap-count="35"></a-text>
         </a-entity>
 
       </a-entity>
