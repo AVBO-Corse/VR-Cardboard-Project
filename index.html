@@ -313,21 +313,36 @@
     AFRAME.registerComponent('center-on-platform', {
       schema: {
         baseY: { type: 'number', default: 0.11 },
-        targetLength: { type: 'number', default: 0 } // 0 = nessuna normalizzazione scala
-      }, // quota appoggio sopra il disco
-      init: function () {
-        this._scaledOnce = false;
-        this._center = this.center.bind(this);
-        this._onTransformChanged = (e) => {
-          const name = e && e.detail ? e.detail.name : '';
-          if (name === 'position' || name === 'rotation' || name === 'scale') this.center();
-        };
-        this.el.addEventListener('model-loaded', this._center);
-        this.el.addEventListener('componentchanged', this._onTransformChanged);
-        if (this.el.getObject3D('mesh')) this._center();
+        targetLength: { type: 'number', default: 0 }, // 0 = nessuna normalizzazione scala
+        useBboxY: { type: 'boolean', default: true }, // Se true, appoggia il min.y. Se false, usa baseY + offsetY
+        offsetX: { type: 'number', default: 0 },
+        offsetY: { type: 'number', default: 0 },
+        offsetZ: { type: 'number', default: 0 }
       },
+      init: function () {
+          this._scaledOnce = false;
+          this._center = () => {
+            // Piccolo delay per dare tempo al decoder Draco di popolare le geometrie reali
+            setTimeout(() => this.center(), 100);
+          };
+          this._onTransformChanged = (e) => {
+            const name = e && e.detail ? e.detail.name : '';
+            if (name === 'position' || name === 'rotation' || name === 'scale') this.center();
+          };
+          this.el.addEventListener('model-loaded', this._center);
+          this.el.addEventListener('componentchanged', this._onTransformChanged);
+          if (this.el.getObject3D('mesh')) this._center();
+        },
       center: function () {
         if (!this.el.getObject3D('mesh') || !this.el.parentEl) return;
+
+        // Assicurati che le bounding box siano calcolate (specialmente post-Draco)
+        this.el.object3D.traverse(child => {
+          if (child.isMesh && child.geometry) {
+            child.geometry.computeBoundingBox();
+            child.geometry.computeBoundingSphere();
+          }
+        });
 
         const parentObj = this.el.parentEl.object3D;
         const box = new THREE.Box3().setFromObject(this.el.object3D);
@@ -354,9 +369,15 @@
         const bottomL = parentObj.worldToLocal(bottomW.clone());
 
         const p = this.el.object3D.position;
-        p.x -= centerL.x;                // centra su X
-        p.z -= centerL.z;                // centra su Z
-        p.y += (this.data.baseY - bottomL.y); // appoggia in Y
+        p.x -= centerL.x + this.data.offsetX;            // centra su X
+        p.z -= centerL.z + this.data.offsetZ;            // centra su Z
+        
+        if (this.data.useBboxY) {
+          p.y += (this.data.baseY - bottomL.y) + this.data.offsetY; // appoggia in Y usando bbox + offset manuale
+        } else {
+          // Se la bbox contiene ombre/piani invisibili, impostiamo Y manualmente
+          p.y = this.data.baseY + this.data.offsetY;
+        }
       },
       remove: function () {
         this.el.removeEventListener('model-loaded', this._center);
@@ -531,6 +552,7 @@
       background="color: #282828"
       vr-mode-ui="enabled: true"
       renderer="antialias: false; colorManagement: true; foveationLevel: 1; highRefreshRate: true;"
+      gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/v1/decoders/;"
     >
 
       <!-- ═══ ASSETS ══════════════════════════════════════════════════════════ -->
@@ -558,17 +580,17 @@
         <img id="sp54" src="img/image54.png" crossorigin="anonymous">
         <img id="sp55" src="img/image55.png" crossorigin="anonymous">
         <img id="sp57" src="img/image57.png" crossorigin="anonymous">
-        <img id="sp58" src="img/image58.png" crossorigin="anonymous">
-        <img id="sp63" src="img/image63.png" crossorigin="anonymous">
+        <img id="sp58" src="img/test58.png" crossorigin="anonymous">
+        <img id="sp63" src="img/test63.png" crossorigin="anonymous">
         <img id="sp65" src="img/image65.png" crossorigin="anonymous">
         <img id="sp66" src="img/image66.png" crossorigin="anonymous">
         <img id="sp67" src="img/logoND.png" crossorigin="anonymous">
         <img id="sp68" src="img/tech-removebg-preview.png" crossorigin="anonymous">
 
-        <a-asset-item id="auto" src="macchina_2025-26.glb"></a-asset-item>
-        <a-asset-item id="trophy-glb" src="Meshy_AI_Golden_Victory_Trophy_0415221224_texture.glb"></a-asset-item>
-        <a-asset-item id="hitachi-glb" src="Meshy_AI_Hitachi_Circular_Exce_0426185751_texture.glb"></a-asset-item>
-        <a-asset-item id="pirelli-glb" src="Meshy_AI_Pirelli_P_Zero_Soft_T_0426185717_texture.glb"></a-asset-item>
+        <a-asset-item id="auto" src="macchina_opt.glb"></a-asset-item>
+        <a-asset-item id="trophy-glb" src="trophy_opt.glb"></a-asset-item>
+        <a-asset-item id="hitachi-glb" src="hitachi_opt.glb"></a-asset-item>
+        <a-asset-item id="pirelli-glb" src="pirelli_opt.glb"></a-asset-item>
         <canvas id="bokeh-tex" width="128" height="128"></canvas>
       </a-assets>
 
@@ -842,14 +864,14 @@
           position="0 0.05 0" rotation="90 0 0">
         </a-torus>
 
-        <!-- Macchina ~5m, centrata sull'origine -->
-        <a-entity id="carModel"
-          gltf-model="#auto"
-          center-on-platform="baseY:0.11; targetLength:7.4"
-          rotation="0 270 0"
-          scale="1 1 1"
-          position="0 0 0">
-        </a-entity>
+          <!-- Macchina ~5m, centrata sull'origine -->
+          <a-entity id="carModel"
+            gltf-model="#auto"
+            center-on-platform="baseY:0.11; targetLength:7.4; useBboxY:false; offsetY:0.15"
+            rotation="0 270 0"
+            scale="1 1 1"
+            position="0 0 0">
+          </a-entity>
 
         <!--
           SISTEMA ASSI (platform local space, post-snap a 35°):
