@@ -93,37 +93,6 @@
       }
     });
 
-    // ── Ottimizzatore Modelli GLB (Riduce carico CPU/GPU) ──────────────────────
-    AFRAME.registerComponent('model-optimizer', {
-      init: function () {
-        this.el.addEventListener('model-loaded', () => {
-          // Aspettiamo che eventuali altri componenti (es. center-on-platform)
-          // applichino scale/spostamenti prima di "congelare" le matrici.
-          setTimeout(() => {
-            const mesh = this.el.getObject3D('mesh');
-            if (!mesh) return;
-            
-            mesh.traverse((node) => {
-              if (node.isMesh) {
-                // 1. Spegne l'auto-update continuo della matrice (risparmia molta CPU sui modelli con tanti nodi)
-                node.matrixAutoUpdate = false;
-                node.updateMatrix();
-                
-                // 2. Disabilita completamente il raycasting interno su questa mesh per alleggerire il calcolo di A-Frame
-                node.raycast = function() {};
-                
-                // 3. Riduci la precisione materiale solo per le parti che non necessitano alta fedeltà
-                if (node.material && window.innerWidth < 800) {
-                  // Sugli smartphone force mediump sui materiali
-                  node.material.precision = 'mediump';
-                }
-              }
-            });
-          }, 300);
-        });
-      }
-    });
-
     // ── Piattaforma: stop rotazione + mostra/nasconde hotspot per prossimità ──
     AFRAME.registerComponent('car-platform', {
       init: function () {
@@ -680,7 +649,7 @@
     <a-scene
       background="color: #282828"
       vr-mode-ui="enabled: true"
-      renderer="antialias: false; colorManagement: true; foveationLevel: 1; highRefreshRate: true; precision: mediump;"
+      renderer="antialias: false; colorManagement: true; foveationLevel: 1; highRefreshRate: true;"
       gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/v1/decoders/;"
     >
 
@@ -996,7 +965,6 @@
           <!-- Macchina ~5m, centrata sull'origine -->
           <a-entity id="carModel"
             gltf-model="#auto"
-            model-optimizer
             center-on-platform="baseY:0.11; targetLength:7.4; useBboxY:false; offsetY:0.15"
             rotation="0 270 0"
             scale="1 1 1"
@@ -1176,7 +1144,7 @@
           <a-cylinder radius="0.42" height="0.05" position="0 1.2 0" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-cylinder>
           
           <!-- Trofeo "PRIMO POSTO REGIONALI" - Modello GLB Esterno -->
-          <a-entity gltf-model="#trophy-glb" model-optimizer position="0 1.225 0" center-on-platform="baseY: 1.225; targetLength: 0.7"></a-entity>
+          <a-entity gltf-model="#trophy-glb" position="0 1.225 0" center-on-platform="baseY: 1.225; targetLength: 0.7"></a-entity>
 
           <!-- Pannello Descrizione -->
           <a-entity position="0 0.8 0.6" rotation="-20 0 0">
@@ -1192,7 +1160,7 @@
           <a-cylinder radius="0.3" height="0.9" position="0 0.45 0" color="#222" material="metalness:0.9; roughness:0.1"></a-cylinder>
           <a-cylinder radius="0.32" height="0.05" position="0 0.9 0" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-cylinder>
           
-          <a-entity gltf-model="#hitachi-glb" model-optimizer position="0 0.95 0" center-on-platform="baseY: 0.95; targetLength: 1.15"></a-entity>
+          <a-entity gltf-model="#hitachi-glb" position="0 0.95 0" center-on-platform="baseY: 0.95; targetLength: 1.15"></a-entity>
           
           <a-entity position="0 0.6 0.5" rotation="-20 0 0">
             <a-plane width="1.55" height="0.95" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
@@ -1207,7 +1175,7 @@
           <a-cylinder radius="0.3" height="0.9" position="0 0.45 0" color="#222" material="metalness:0.9; roughness:0.1"></a-cylinder>
           <a-cylinder radius="0.32" height="0.05" position="0 0.9 0" color="#00d5ff" material="emissive:#00d5ff; emissiveIntensity:0.8"></a-cylinder>
           
-          <a-entity gltf-model="#pirelli-glb" model-optimizer position="0 0.95 0" center-on-platform="baseY: 0.95; targetLength: 1.45"></a-entity>
+          <a-entity gltf-model="#pirelli-glb" position="0 0.95 0" center-on-platform="baseY: 0.95; targetLength: 1.45"></a-entity>
 
           <a-entity position="0 0.6 0.5" rotation="-20 0 0">
             <a-plane width="1.55" height="0.95" color="#050a14" material="opacity:0.9; transparent:true"></a-plane>
