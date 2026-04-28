@@ -964,6 +964,7 @@
 
           <!-- Macchina ~5m, centrata sull'origine -->
           <a-entity id="carModel"
+            class="no-raycast"
             gltf-model="#auto"
             center-on-platform="baseY:0.11; targetLength:7.4; useBboxY:false; offsetY:0.15"
             rotation="0 270 0"
@@ -1063,7 +1064,7 @@
         <a-entity id="cam" camera look-controls="pointerLockEnabled: false" position="0 1.6 0">
           <!-- [OTTIMIZZAZIONE CPU]: interval 75 evita calcoli raycaster eccessivi ad ogni singolo frame -->
           <a-cursor fuse="false"
-            raycaster="objects: .gaze-target, .hotspot-trigger, .tele-hit; far: 18; interval: 75"
+            raycaster="objects: .gaze-target, .hotspot-trigger, .tele-hit; far: 18; interval: 75; exclude: .no-raycast"
             geometry="primitive: ring; radiusInner: 0.012; radiusOuter: 0.018"
             material="color: #cc44ff; shader: flat; opacity: 0.9">
           </a-cursor>
